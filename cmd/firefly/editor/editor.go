@@ -18,6 +18,7 @@ type Editor struct {
 	project   *project.Project
 	view      *widgets.QGraphicsView
 	scene     *widgets.QGraphicsScene
+	selection *elementGraphicsItem
 }
 
 func New(proj *project.Project) *Editor {
@@ -41,6 +42,8 @@ func New(proj *project.Project) *Editor {
 		view:    view,
 		scene:   view.Scene(),
 	}
+	edit.setupScene()
+	view.Scene().ConnectMousePressEvent(edit.mousePressEvent)
 
 	window.Show()
 
@@ -74,3 +77,44 @@ func buildEditor() *widgets.QWidget {
 	return mainWidget
 }
 
+func (e *Editor) setupScene() {
+	logrus.WithField("elements", len(e.project.Scene.Elements)).Debug("editor scene setup")
+	e.scene.Clear()
+
+	e.view.Scene().AddRect2(0, 0, editorViewWidth, e.project.Duration, gui.NewQPen2(core.Qt__NoPen), gui.NewQBrush3(gui.NewQColor3(0, 0, 255, 20), core.Qt__SolidPattern))
+
+	for i := range e.project.Scene.Elements {
+		e.scene.AddItem(newElementGraphicsItem(e, &e.project.Scene.Elements[i]))
+	}
+}
+
+func (e *Editor) mousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
+	// The builtin selection mechanism has some unwanted side effects that resulted in the need to implement my own.
+	// The items themselves will know when they get clicked but I don't know when the used click on the background.
+	// The best solution to this problem would probably be to create an item that fills the whole scene and that would
+	// received mouse press events when no other item got hit.
+	// I tried to fully reimplement the mouse press event without calling the default implementation so that it would
+	// only be required to find the clicked item once but that was more complicated than I thought because
+	// it doesn't seems possible to use the grabMouse mechanism of qt and I would also need to reimplement that.
+	if e.selection != nil {
+		hitItem := e.scene.ItemAt(event.ScenePos(), e.view.ViewportTransform())
+		if hitItem == nil {
+			e.selection.deselect()
+			e.selection = nil
+		}
+	}
+	event.Ignore()
+	e.scene.MousePressEventDefault(event)
+}
+
+func (e *Editor) elementSelected(item *elementGraphicsItem) {
+	logrus.Trace("editor element selected")
+	if e.selection != item {
+		if e.selection != nil {
+			logrus.Trace("editor called deselect")
+			e.selection.deselect()
+		}
+		e.selection = item
+		logrus.WithField("item", item).Trace("editor selection changed")
+	}
+}
