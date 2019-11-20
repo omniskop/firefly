@@ -1,10 +1,14 @@
 // Package vectorpath contains definitions for shape paths
 package vectorpath
 
+import (
+	"fmt"
+)
+
 // A Point is a position in the scene
 type Point struct {
-	T float64 // T is the point in time in seconds
 	P float64 // P is the position of the point along the drawing axis
+	T float64 // T is the point in time in seconds
 }
 
 // Sub returns the result of subtracting the parameter from this point
@@ -29,6 +33,11 @@ func (p Point) Invert() Point {
 		T: -p.T,
 		P: -p.P,
 	}
+}
+
+// String implements the stringer interface
+func (p Point) String() string {
+	return fmt.Sprintf("{%.2f, %.2f}", p.P, p.T)
 }
 
 // Path contains segments that are positioned relative to P
@@ -59,7 +68,7 @@ func (p Path) PointAfter(start float64, n int) Point {
 		return point // shortcut because the path needs to be closed the end position of the path is the same as the starting one
 	}
 	for i := 0; i < n; i++ {
-		point.Add(p.Segments[i].EndPoint())
+		point = point.Add(p.Segments[i].EndPoint())
 	}
 	return point
 }
@@ -77,66 +86,66 @@ type Line struct {
 }
 
 // Move moves the Line by some amount
-func (l Line) Move(diff Point) {
-	l.Point.Add(diff)
+func (l *Line) Move(diff Point) {
+	l.Point = l.Point.Add(diff)
 }
 
 // EndPoint of the line
-func (l Line) EndPoint() Point {
+func (l *Line) EndPoint() Point {
 	return l.Point
 }
 
 // OldestPointInTime returns the end point of the line
-func (l Line) OldestPointInTime() float64 {
+func (l *Line) OldestPointInTime() float64 {
 	return l.T
 }
 
-// A QubicCurve from the last point with control and end points
-type QubicCurve struct {
+// A QuadCurve from the last point with control and end points
+type QuadCurve struct {
 	Control Point
 	End     Point
 }
 
-// Move moves the QubicCurve by some amount
-func (curve QubicCurve) Move(diff Point) {
-	curve.Control.Add(diff)
-	curve.End.Add(diff)
+// Move moves the QuadCurve by some amount
+func (curve *QuadCurve) Move(diff Point) {
+	curve.Control = curve.Control.Add(diff)
+	curve.End = curve.End.Add(diff)
 }
 
-// EndPoint of the QubicCurve
-func (curve QubicCurve) EndPoint() Point {
+// EndPoint of the QuadCurve
+func (curve *QuadCurve) EndPoint() Point {
 	return curve.End
 }
 
 // OldestPointInTime returns the oldest point of the curve
-func (curve QubicCurve) OldestPointInTime() float64 {
+func (curve *QuadCurve) OldestPointInTime() float64 {
 	if curve.Control.T > curve.End.T {
 		return curve.Control.T
 	}
 	return curve.End.T
 }
 
-// A QuadCurve from the last point with two control points and an end point
-type QuadCurve struct {
+// A CubicCurve from the last point with two control points and an end point
+type CubicCurve struct {
 	ControlA Point
 	ControlB Point
 	End      Point
 }
 
-// Move moves the QuadCurve by some amount
-func (curve QuadCurve) Move(diff Point) {
-	curve.ControlA.Add(diff)
-	curve.ControlB.Add(diff)
-	curve.End.Add(diff)
+// Move moves the CubicCurve by some amount
+func (curve *CubicCurve) Move(diff Point) {
+	curve.ControlA = curve.ControlA.Add(diff)
+	curve.ControlB = curve.ControlB.Add(diff)
+	curve.End = curve.End.Add(diff)
 }
 
-// EndPoint of the QuadCurve
-func (curve QuadCurve) EndPoint() Point {
+// EndPoint of the CubicCurve
+func (curve *CubicCurve) EndPoint() Point {
 	return curve.End
 }
 
 // OldestPointInTime returns the oldest point of the curve
-func (curve QuadCurve) OldestPointInTime() float64 {
+func (curve *CubicCurve) OldestPointInTime() float64 {
 	if curve.ControlA.T >= curve.ControlB.T {
 		if curve.ControlA.T >= curve.End.T {
 			return curve.ControlA.T
