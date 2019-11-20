@@ -6,6 +6,9 @@ deploy/
 # visual studio code
 /.vscode
 
+# macOS
+.DS_Store
+
 ## GitHub default go gitignore
 
 # Binaries for programs and plugins
