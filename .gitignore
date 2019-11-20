@@ -6,6 +6,9 @@ deploy/
 # visual studio code
 /.vscode
 
+# GoLand
+/.idea
+
 # macOS
 .DS_Store
 
