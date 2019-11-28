@@ -50,7 +50,7 @@ func main() {
 				},
 				project.Element{
 					ZIndex: 0,
-					Shape:  project.NewOrthogonalRectangle(vectorpath.Point{0, 10}, 0.5, 5),
+					Shape:  shape.NewBentTrapezoid(vectorpath.Point{0.6, 15}, vectorpath.Point{0.4, 20}, 0.3, 0.5),
 				},
 			},
 			Effects: []project.Effect{},
