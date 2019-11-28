@@ -3,6 +3,7 @@ package vectorpath
 
 import (
 	"fmt"
+	"math"
 )
 
 // A Point is a position in the scene
@@ -19,11 +20,19 @@ func (p Point) Sub(b Point) Point {
 	}
 }
 
-// Add returns the result of adding this point and the paremter
+// Add returns the result of adding this point with the parameter
 func (p Point) Add(b Point) Point {
 	return Point{
 		T: p.T + b.T,
 		P: p.P + b.P,
+	}
+}
+
+// AddComponents returns the result of adding this point to the parameters
+func (p Point) AddComponents(pos float64, time float64) Point {
+	return Point{
+		P: p.P + pos,
+		T: p.T + time,
 	}
 }
 
@@ -38,6 +47,14 @@ func (p Point) Invert() Point {
 // String implements the stringer interface
 func (p Point) String() string {
 	return fmt.Sprintf("{%.2f, %.2f}", p.P, p.T)
+}
+
+// Interpolate linearly between point a and b by the factor f
+func Interpolate(a, b Point, f float64) Point {
+	return Point{
+		P: a.P + (b.P-a.P)*f,
+		T: a.T + (b.T-a.T)*f,
+	}
 }
 
 // Path contains segments that are positioned relative to P
@@ -156,4 +173,10 @@ func (curve *CubicCurve) OldestPointInTime() float64 {
 		}
 	}
 	return curve.End.T
+}
+
+// Clamp the value between min and max
+func Clamp(value float64, min float64, max float64) float64 {
+	// using min and max is faster than using an if
+	return math.Min(max, math.Max(min, value))
 }
