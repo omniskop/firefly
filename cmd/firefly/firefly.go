@@ -3,6 +3,8 @@ package main
 import (
 	"runtime"
 
+	"github.com/omniskop/firefly/pkg/project/shape"
+
 	"github.com/omniskop/firefly/cmd/firefly/editor"
 
 	"github.com/omniskop/firefly/pkg/project"
@@ -36,11 +38,15 @@ func main() {
 			Elements: []project.Element{
 				project.Element{
 					ZIndex: 0,
-					Shape:  project.NewOrthogonalRectangle(vectorpath.Point{0, 0}, 0.5, 5),
+					Shape:  shape.NewOrthogonalRectangle(vectorpath.Point{0, 0}, 0.5, 5),
 				},
 				project.Element{
 					ZIndex: 0,
-					Shape:  project.NewOrthogonalRectangle(vectorpath.Point{0.5, 5}, 0.5, 5),
+					Shape:  shape.NewOrthogonalRectangle(vectorpath.Point{0.5, 5}, 0.5, 5),
+				},
+				project.Element{
+					ZIndex: 0,
+					Shape:  shape.NewOrthogonalRectangle(vectorpath.Point{0, 10}, 0.5, 5),
 				},
 				project.Element{
 					ZIndex: 0,
