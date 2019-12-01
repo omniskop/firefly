@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image/color"
 	"runtime"
 
 	"github.com/omniskop/firefly/pkg/project/shape"
@@ -39,18 +40,32 @@ func main() {
 				project.Element{
 					ZIndex: 0,
 					Shape:  shape.NewOrthogonalRectangle(vectorpath.Point{0, 0}, 0.5, 5),
+					Pattern: &project.LinearGradient{
+						Start: project.GradientAnchorPoint{
+							Color: color.RGBA{R: 255, G: 0, B: 0, A: 255},
+							Point: vectorpath.Point{P: 0.25, T: 0},
+						},
+						Stop: project.GradientAnchorPoint{
+							Color: color.RGBA{R: 0, G: 0, B: 255, A: 255},
+							Point: vectorpath.Point{P: 0.5, T: 1},
+						},
+						Steps: nil,
+					},
 				},
 				project.Element{
-					ZIndex: 0,
-					Shape:  shape.NewOrthogonalRectangle(vectorpath.Point{0.5, 5}, 0.5, 5),
+					ZIndex:  0,
+					Shape:   shape.NewOrthogonalRectangle(vectorpath.Point{0.5, 5}, 0.5, 5),
+					Pattern: project.NewSolidColorRGBA(255, 0, 0, 255),
 				},
 				project.Element{
-					ZIndex: 0,
-					Shape:  shape.NewOrthogonalRectangle(vectorpath.Point{0, 10}, 0.5, 5),
+					ZIndex:  0,
+					Shape:   shape.NewOrthogonalRectangle(vectorpath.Point{0, 10}, 0.5, 5),
+					Pattern: project.NewSolidColorRGBA(255, 0, 0, 255),
 				},
 				project.Element{
-					ZIndex: 0,
-					Shape:  shape.NewBentTrapezoid(vectorpath.Point{0.6, 15}, vectorpath.Point{0.4, 20}, 0.3, 0.5),
+					ZIndex:  0,
+					Shape:   shape.NewBentTrapezoid(vectorpath.Point{0.6, 15}, vectorpath.Point{0.4, 20}, 0.3, 0.5),
+					Pattern: project.NewSolidColorRGBA(255, 0, 0, 255),
 				},
 			},
 			Effects: []project.Effect{},
