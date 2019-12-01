@@ -20,6 +20,14 @@ func (p Point) Sub(b Point) Point {
 	}
 }
 
+// SubComponents returns the result of subtracting the parameters from this point
+func (p Point) SubComponents(pos float64, time float64) Point {
+	return Point{
+		P: p.P - pos,
+		T: p.T - time,
+	}
+}
+
 // Add returns the result of adding this point with the parameter
 func (p Point) Add(b Point) Point {
 	return Point{
