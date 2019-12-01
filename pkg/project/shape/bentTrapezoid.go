@@ -51,6 +51,10 @@ func (b *BentTrapezoid) Duration() float64 {
 	return b.duration
 }
 
+func (b *BentTrapezoid) Width() float64 {
+	return math.Max(b.topWidth, b.bottomOffset+b.bottomWidth)
+}
+
 func (b *BentTrapezoid) Path() vectorpath.Path {
 	return vectorpath.Path{
 		P: b.position.P,

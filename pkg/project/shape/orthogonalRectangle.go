@@ -39,6 +39,10 @@ func (or *OrthogonalRectangle) Duration() float64 {
 	return or.path.Duration()
 }
 
+func (or *OrthogonalRectangle) Width() float64 {
+	return or.path.Segments[0].EndPoint().P
+}
+
 // Path returns the path of the shape that should be rendered
 func (or *OrthogonalRectangle) Path() vectorpath.Path {
 	return or.path

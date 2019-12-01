@@ -8,6 +8,7 @@ import (
 type Shape interface {
 	Time() float64
 	Duration() float64
+	Width() float64
 	Path() vectorpath.Path
 	Handles() []vectorpath.Point
 	SetHandle(int, vectorpath.Point)
