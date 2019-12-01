@@ -15,6 +15,7 @@ type elementGraphicsItem struct {
 	element                    *project.Element      // the element
 	editor                     *Editor               // the parent editor this element belongs to
 	handles                    []*handleGraphicsItem // the handle items that are visible when the element is selected
+	gradientItem               *gradientGraphicsItem
 	ignoreNextPositionChange   bool
 }
 
@@ -25,9 +26,9 @@ func newElementGraphicsItem(editor *Editor, element *project.Element) *elementGr
 		editor:            editor,
 	}
 	item.SetPos(qtPoint(element.Shape.Location()))
-	item.SetBrush(gui.NewQBrush3(gui.NewQColor3(255, 0, 0, 255), core.Qt__SolidPattern))
+	item.updatePattern()
 	item.SetPen(noPen)
-	item.SetFlags(widgets.QGraphicsItem__ItemSendsGeometryChanges | widgets.QGraphicsItem__ItemIsMovable)
+	item.SetFlags(widgets.QGraphicsItem__ItemSendsScenePositionChanges | widgets.QGraphicsItem__ItemIsMovable)
 	item.ConnectMousePressEvent(item.mousePressEvent)
 	item.ConnectItemChange(item.itemChangeEvent)
 	return &item
@@ -37,6 +38,12 @@ func (item *elementGraphicsItem) updatePath() {
 	item.ignoreNextPositionChange = true
 	item.SetPos(qtPoint(item.element.Shape.Location()))
 	item.SetPath(pathFromElement(item.element))
+	item.updateHandles(-1)
+}
+
+// updatePattern sets the brush of the element
+func (item *elementGraphicsItem) updatePattern() {
+	item.SetBrush(NewQBrushFromPattern(item.element.Pattern)) // TODO: modify brush instead of replacing it
 }
 
 func (item *elementGraphicsItem) updateHandles(except int) {
@@ -47,23 +54,17 @@ func (item *elementGraphicsItem) updateHandles(except int) {
 		}
 		handle.updatePosition(shapeHandles[i])
 	}
+
+	// update the gradient graphics item
+	// i might move this into it's own method at some point
+	if item.gradientItem != nil {
+		item.gradientItem.updateShape(-100)
+	}
 }
 
 func (item *elementGraphicsItem) mousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
 	logrus.Trace("element pressed")
-	if len(item.handles) != 0 {
-		logrus.Trace("element already selected")
-		return
-	}
-
-	item.handles = make([]*handleGraphicsItem, len(item.element.Shape.Handles()))
-
-	for i, handle := range item.element.Shape.Handles() {
-		item.handles[i] = newHandleGraphicsItem(item, handle, i)
-	}
-	logrus.WithField("handles", len(item.handles)).Trace("created handles")
-
-	item.editor.elementSelected(item)
+	item.selectElement()
 }
 
 func (item *elementGraphicsItem) itemChangeEvent(change widgets.QGraphicsItem__GraphicsItemChange, value *core.QVariant) *core.QVariant {
@@ -85,13 +86,41 @@ end:
 	return item.ItemChangeDefault(change, value)
 }
 
-func (item *elementGraphicsItem) deselect() {
-	logrus.WithFields(logrus.Fields{"handles": len(item.handles), "item": item}).Trace("deselect called")
+func (item *elementGraphicsItem) selectElement() {
+	if len(item.handles) != 0 {
+		logrus.Trace("element already selected")
+		return
+	}
+
+	item.handles = make([]*handleGraphicsItem, len(item.element.Shape.Handles()))
+
+	for i, handle := range item.element.Shape.Handles() {
+		item.handles[i] = newHandleGraphicsItem(item, handle, i)
+	}
+	logrus.WithField("handles", len(item.handles)).Trace("created handles")
+
+	// gradient
+	if item.element.Pattern != nil {
+		if linearGradient, ok := item.element.Pattern.(*project.LinearGradient); ok {
+			item.gradientItem = newGradientGraphicsItem(item, linearGradient)
+		}
+	}
+
+	item.editor.elementSelected(item)
+}
+
+func (item *elementGraphicsItem) deselectElement() {
+	logrus.WithFields(logrus.Fields{"handles": len(item.handles), "item": item}).Trace("deselectElement called")
 	scene := item.Scene()
 	for _, handleItem := range item.handles {
 		scene.RemoveItem(handleItem)
 	}
 	item.handles = nil
+
+	if item.gradientItem != nil {
+		scene.RemoveItem(item.gradientItem)
+		item.gradientItem = nil
+	}
 }
 
 func pathFromElement(element *project.Element) *gui.QPainterPath {

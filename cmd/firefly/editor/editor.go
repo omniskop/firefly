@@ -99,7 +99,7 @@ func (e *Editor) mousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
 	if e.selection != nil {
 		hitItem := e.scene.ItemAt(event.ScenePos(), e.view.ViewportTransform())
 		if hitItem == nil {
-			e.selection.deselect()
+			e.selection.deselectElement()
 			e.selection = nil
 		}
 	}
@@ -111,8 +111,8 @@ func (e *Editor) elementSelected(item *elementGraphicsItem) {
 	logrus.Trace("editor element selected")
 	if e.selection != item {
 		if e.selection != nil {
-			logrus.Trace("editor called deselect")
-			e.selection.deselect()
+			logrus.Trace("editor called deselectElement")
+			e.selection.deselectElement()
 		}
 		e.selection = item
 		logrus.WithField("item", item).Trace("editor selection changed")

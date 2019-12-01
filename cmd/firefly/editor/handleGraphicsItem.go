@@ -28,7 +28,7 @@ func newHandleGraphicsItem(parent *elementGraphicsItem, point vectorpath.Point, 
 	item.SetOffset2(-12, -12)                                        // half of the picture size
 	item.SetPos(qtPoint(point.Sub(parent.element.Shape.Location()))) // convert the scene coordinate to parent coordinates
 	item.SetTransformationMode(core.Qt__SmoothTransformation)
-	item.SetFlags(widgets.QGraphicsItem__ItemIgnoresTransformations | widgets.QGraphicsItem__ItemIsMovable | widgets.QGraphicsItem__ItemSendsGeometryChanges)
+	item.SetFlags(widgets.QGraphicsItem__ItemIgnoresTransformations | widgets.QGraphicsItem__ItemIsMovable | widgets.QGraphicsItem__ItemSendsScenePositionChanges)
 
 	// connect all necessary events
 	item.ConnectItemChange(item.itemChangeEvent)
@@ -63,10 +63,8 @@ func (item *handleGraphicsItem) itemChangeEvent(change widgets.QGraphicsItem__Gr
 		// Due to the whole position thing the default qt item movement does not work anymore.
 		// If a handle gets moved down and that also moves the shape (and thus the parent) the movement gets doubled.
 		// Once due to qt moving the handle with the mouse and then a second time because the parent moves the handle
-		// with it. That's why we do not exclude this handle from the handle update.
-		//item.parent.updateHandles(item.index)
-		item.parent.updateHandles(-1)
-		// If there isn't a simple fix for this situation if might be best to implement the movement completely on our
+		// with it. That's why the element needs to update all the handles including this one.
+		// If there isn't a simple fix for this situation it might be best to implement the movement completely on our
 		// own instead of partially using the qt implementation and then reverting it's effect.
 		// Which is effectively what we do now.
 	}
