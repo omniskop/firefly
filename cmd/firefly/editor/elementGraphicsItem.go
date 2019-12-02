@@ -10,6 +10,18 @@ import (
 	"github.com/therecipe/qt/widgets"
 )
 
+var selectionPen = gui.NewQPen4(
+	gui.NewQBrush3(gui.NewQColor3(255, 255, 255, 255), core.Qt__SolidPattern),
+	1,
+	core.Qt__SolidLine,
+	core.Qt__FlatCap,
+	core.Qt__BevelJoin,
+)
+
+func init() {
+	selectionPen.SetCosmetic(true)
+}
+
 type elementGraphicsItem struct {
 	*widgets.QGraphicsPathItem                       // the underlying path in the QGraphicsScene
 	element                    *project.Element      // the element
@@ -99,6 +111,8 @@ func (item *elementGraphicsItem) selectElement() {
 	}
 	logrus.WithField("handles", len(item.handles)).Trace("created handles")
 
+	item.SetPen(selectionPen)
+
 	// gradient
 	if item.element.Pattern != nil {
 		if linearGradient, ok := item.element.Pattern.(*project.LinearGradient); ok {
@@ -121,6 +135,8 @@ func (item *elementGraphicsItem) deselectElement() {
 		scene.RemoveItem(item.gradientItem)
 		item.gradientItem = nil
 	}
+
+	item.SetPen(noPen)
 }
 
 func pathFromElement(element *project.Element) *gui.QPainterPath {
