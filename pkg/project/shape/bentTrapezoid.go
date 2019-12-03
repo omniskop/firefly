@@ -32,6 +32,7 @@ type BentTrapezoid struct {
 
 var _ project.Shape = (*BentTrapezoid)(nil) // make sure BentTrapezoid implements the Shape interface
 
+// NewBentTrapezoid returns a new BentTrapezoid
 func NewBentTrapezoid(topPosition vectorpath.Point, bottomPosition vectorpath.Point, topWidth float64, bottomWidth float64) *BentTrapezoid {
 	return &BentTrapezoid{
 		position:     topPosition,
@@ -43,21 +44,61 @@ func NewBentTrapezoid(topPosition vectorpath.Point, bottomPosition vectorpath.Po
 	}
 }
 
+// Time returns the point in time where the shape start
 func (b *BentTrapezoid) Time() float64 {
 	return b.position.T
 }
 
+// Duration returns the duration that the shape takes up
 func (b *BentTrapezoid) Duration() float64 {
 	return b.duration
 }
 
+// Width returns the visual width of the shape
 func (b *BentTrapezoid) Width() float64 {
-	return math.Max(b.topWidth, b.bottomOffset+b.bottomWidth)
+	if b.bottomOffset >= 0 {
+		return math.Max(b.topWidth, b.bottomOffset+b.bottomWidth)
+	}
+	return math.Max(-b.bottomOffset+b.topWidth, b.bottomWidth)
 }
 
+// Bounds returns the outer bounds of the shape
+func (b *BentTrapezoid) Bounds() vectorpath.Rect {
+	if b.bottomOffset >= 0 {
+		return vectorpath.NewRect(
+			b.position.P,
+			b.position.T,
+			math.Max(b.topWidth, b.bottomOffset+b.bottomWidth),
+			b.duration,
+		)
+	}
+	return vectorpath.NewRect(
+		b.position.P+b.bottomOffset,
+		b.position.T,
+		math.Max(-b.bottomOffset+b.topWidth, b.bottomWidth),
+		b.duration,
+	)
+}
+
+// Move the shape by some amount
+func (b *BentTrapezoid) Move(offset vectorpath.Point) {
+	b.position = b.position.Add(offset)
+}
+
+// Origin returns the top left point of the trapezoid
+func (b *BentTrapezoid) Origin() vectorpath.Point {
+	return b.position
+}
+
+// SetOrigin sets the position of the top left point
+func (b *BentTrapezoid) SetOrigin(point vectorpath.Point) {
+	b.position = point
+}
+
+// Path returns a path that describes the bent trapezoid
 func (b *BentTrapezoid) Path() vectorpath.Path {
 	return vectorpath.Path{
-		P: b.position.P,
+		Start: b.position,
 		Segments: []vectorpath.Segment{
 			&vectorpath.Line{Point: vectorpath.Point{P: b.topWidth, T: 0}}, // top right
 			//&vectorpath.Line{Point: vectorpath.Point{ // bottom right
@@ -66,7 +107,7 @@ func (b *BentTrapezoid) Path() vectorpath.Path {
 			//}},
 			&vectorpath.QuadCurve{ // bottom right
 				Control: vectorpath.Point{
-					P: b.test((b.bottomOffset+b.bottomWidth)-b.topWidth, b.bend.P),
+					P: b.interpolate((b.bottomOffset+b.bottomWidth)-b.topWidth, b.bend.P),
 					T: b.duration * b.bend.T,
 				},
 				End: vectorpath.Point{
@@ -84,7 +125,7 @@ func (b *BentTrapezoid) Path() vectorpath.Path {
 			//}},
 			&vectorpath.QuadCurve{ // bottom right
 				Control: vectorpath.Point{
-					P: -b.test(b.bottomOffset, 1-b.bend.P),
+					P: -b.interpolate(b.bottomOffset, 1-b.bend.P),
 					T: -b.duration * (1 - b.bend.T),
 				},
 				End: vectorpath.Point{ // top left
@@ -96,20 +137,14 @@ func (b *BentTrapezoid) Path() vectorpath.Path {
 	}
 }
 
-//func (b *BentTrapezoid) interpolateFromLeftToRight(a, b, p float64) {
-//	if a < b {
-//		return
-//	}
-//}
-
-func (b *BentTrapezoid) test(a, p float64) float64 {
+func (b *BentTrapezoid) interpolate(a, p float64) float64 {
 	if a > 0 {
 		return a * p
-	} else {
-		return a * (1 - p)
 	}
+	return a * (1 - p)
 }
 
+// Handles returns the position of all handles
 func (b *BentTrapezoid) Handles() []vectorpath.Point {
 	return []vectorpath.Point{
 		{ // top center
@@ -138,6 +173,7 @@ func (b *BentTrapezoid) Handles() []vectorpath.Point {
 	}
 }
 
+// SetHandle sets the handle 'index' to the new point
 func (b *BentTrapezoid) SetHandle(index int, absolutePoint vectorpath.Point) {
 	switch index {
 	case 0: // top - top center
@@ -177,16 +213,4 @@ func (b *BentTrapezoid) SetHandle(index int, absolutePoint vectorpath.Point) {
 		b.bend.P = (absolutePoint.P - b.position.P - b.bottomOffset*b.bend.T) / (b.topWidth + (b.bottomWidth-b.topWidth)*b.bend.T)
 		b.bend.P = math.Min(1, math.Max(0, b.bend.P))
 	}
-}
-
-func (b *BentTrapezoid) Move(offset vectorpath.Point) {
-	b.position = b.position.Add(offset)
-}
-
-func (b *BentTrapezoid) Location() vectorpath.Point {
-	return b.position
-}
-
-func (b *BentTrapezoid) SetLocation(point vectorpath.Point) {
-	b.position = point
 }

@@ -85,14 +85,15 @@ func NewRect(p, t, w, d float64) Rect {
 	}
 }
 
+// Path contains segments that are positioned relative to the Start
 type Path struct {
-	P        float64
+	Start    Point // TODO: check if this can be removed
 	Segments []Segment
 }
 
 // Duration returns the duration (length on the time axis) of the path
 func (p Path) Duration() float64 {
-	oldest := p.P
+	var oldest float64
 	for _, segment := range p.Segments {
 		if segment.OldestPointInTime() > oldest {
 			oldest = segment.OldestPointInTime()
@@ -101,13 +102,10 @@ func (p Path) Duration() float64 {
 	return oldest
 }
 
-// PointAfter returns the point where the path will be after drawing n segments starting at 'start'.
+// PointAfter returns the point where the path will be after drawing n segment.
 // If n is larger than the number of segments it will return the point after the full path has been drawn which is the same as the starting position.
-func (p Path) PointAfter(start float64, n int) Point {
-	point := Point{
-		T: start,
-		P: p.P,
-	}
+func (p Path) PointAfter(n int) Point {
+	point := p.Start
 	if n >= len(p.Segments) {
 		return point // shortcut because the path needs to be closed the end position of the path is the same as the starting one
 	}

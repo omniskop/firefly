@@ -25,9 +25,7 @@ func newHandleGraphicsItem(parent *elementGraphicsItem, point vectorpath.Point, 
 		moveStartPosition:   core.NewQPointF(),
 	}
 
-	item.SetOffset2(-12, -12)                                        // half of the picture size
-	item.SetPos(qtPoint(point.Sub(parent.element.Shape.Location()))) // convert the scene coordinate to parent coordinates
-	item.SetTransformationMode(core.Qt__SmoothTransformation)
+	item.SetPos(qtPoint(point.Sub(parent.element.Shape.Origin()))) // convert the scene coordinate to parent coordinates
 	item.SetFlags(widgets.QGraphicsItem__ItemIgnoresTransformations | widgets.QGraphicsItem__ItemIsMovable | widgets.QGraphicsItem__ItemSendsScenePositionChanges)
 
 	// connect all necessary events
@@ -81,5 +79,5 @@ func (item *handleGraphicsItem) updatePosition(point vectorpath.Point) {
 	// This is the same as
 	// item.SetPos(item.parent.MapFromScene(qtPoint(point)))
 	// but we save a c-call
-	item.SetPos(qtPoint(point.Sub(item.parent.element.Shape.Location())))
+	item.SetPos(qtPoint(point.Sub(item.parent.element.Shape.Origin())))
 }

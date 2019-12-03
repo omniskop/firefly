@@ -7,7 +7,6 @@ import (
 
 // OrthogonalRectangle is a rectangle shape whose edges are orthogonal to the coordinate system
 type OrthogonalRectangle struct {
-	t    float64
 	path vectorpath.Path
 }
 
@@ -16,9 +15,8 @@ var _ project.Shape = (*OrthogonalRectangle)(nil) // make sure OrthogonalRectang
 // NewOrthogonalRectangle creates a new shape with the top left position and width and height
 func NewOrthogonalRectangle(pos vectorpath.Point, width float64, height float64) *OrthogonalRectangle {
 	return &OrthogonalRectangle{
-		t: pos.T,
 		path: vectorpath.Path{
-			P: pos.P,
+			Start: pos,
 			Segments: []vectorpath.Segment{
 				&vectorpath.Line{Point: vectorpath.Point{P: width, T: 0}},
 				&vectorpath.Line{Point: vectorpath.Point{P: 0, T: height}},
@@ -31,7 +29,7 @@ func NewOrthogonalRectangle(pos vectorpath.Point, width float64, height float64)
 
 // Time returns the temporal position of the rectangle in seconds
 func (or *OrthogonalRectangle) Time() float64 {
-	return or.t
+	return or.path.Start.T
 }
 
 // Duration returns the duration of the shape in seconds
@@ -39,8 +37,34 @@ func (or *OrthogonalRectangle) Duration() float64 {
 	return or.path.Duration()
 }
 
+// Width returns the width of the shape
 func (or *OrthogonalRectangle) Width() float64 {
 	return or.path.Segments[0].EndPoint().P
+}
+
+// Bounds returns the underlying rectangle
+func (or *OrthogonalRectangle) Bounds() vectorpath.Rect {
+	return vectorpath.NewRect(
+		or.path.Start.P,
+		or.path.Start.T,
+		or.path.Segments[0].EndPoint().P,
+		or.path.Segments[1].EndPoint().T,
+	)
+}
+
+// Move the rectangle by some amount
+func (or *OrthogonalRectangle) Move(by vectorpath.Point) {
+	or.path.Start = or.path.Start.Add(by)
+}
+
+// Origin returns the top left point of the rectangle
+func (or *OrthogonalRectangle) Origin() vectorpath.Point {
+	return or.path.Start
+}
+
+// SetOrigin sets the top left point of the rectangle to a new point
+func (or *OrthogonalRectangle) SetOrigin(l vectorpath.Point) {
+	or.path.Start = l
 }
 
 // Path returns the path of the shape that should be rendered
@@ -50,15 +74,11 @@ func (or *OrthogonalRectangle) Path() vectorpath.Path {
 
 // Handles returns all handles for this shape that the user can then use to manipulate the shape
 func (or *OrthogonalRectangle) Handles() []vectorpath.Point {
-	topLeft := vectorpath.Point{
-		T: or.t,
-		P: or.path.P,
-	}
-	topRight := topLeft.Add(or.path.Segments[0].EndPoint())
+	topRight := or.path.Start.Add(or.path.Segments[0].EndPoint())
 	bottomRight := topRight.Add(or.path.Segments[1].EndPoint())
 	bottomLeft := bottomRight.Add(or.path.Segments[2].EndPoint())
 	return []vectorpath.Point{
-		topLeft,
+		or.path.Start,
 		topRight,
 		bottomRight,
 		bottomLeft,
@@ -74,12 +94,8 @@ func (or *OrthogonalRectangle) SetHandle(i int, absolutePoint vectorpath.Point) 
 	}
 	switch i {
 	case 0: // move the top left handle
-		difference := absolutePoint.Sub(vectorpath.Point{
-			T: or.t,
-			P: or.path.P,
-		})
-		or.t = absolutePoint.T
-		or.path.P = absolutePoint.P
+		difference := absolutePoint.Sub(or.path.Start)
+		or.path.Start = absolutePoint
 
 		or.path.Segments[0].Move(vectorpath.Point{ // top right
 			P: -difference.P, // counteract the movement of the start position
@@ -102,12 +118,12 @@ func (or *OrthogonalRectangle) SetHandle(i int, absolutePoint vectorpath.Point) 
 		})
 	case 1: // move the top right handle
 		// absolute position of the original handle
-		absoluteHandlePos := or.path.PointAfter(or.t, 1)
+		absoluteHandlePos := or.path.PointAfter(1)
 
 		// difference between the handle positions
 		difference := absolutePoint.Sub(absoluteHandlePos)
 
-		or.t = absolutePoint.T
+		or.path.Start.T = absolutePoint.T
 		or.path.Segments[0].Move(vectorpath.Point{
 			T: 0,
 			P: difference.P,
@@ -129,7 +145,7 @@ func (or *OrthogonalRectangle) SetHandle(i int, absolutePoint vectorpath.Point) 
 		})
 	case 2: // move the bottom right handle
 		// absolute position of the original handle
-		absoluteHandlePos := or.path.PointAfter(or.t, 2)
+		absoluteHandlePos := or.path.PointAfter(2)
 
 		// difference between the handle positions
 		difference := absolutePoint.Sub(absoluteHandlePos)
@@ -155,12 +171,12 @@ func (or *OrthogonalRectangle) SetHandle(i int, absolutePoint vectorpath.Point) 
 		})
 	case 3: // move the bottom left handle
 		// absolute position of the original handle
-		absoluteHandlePos := or.path.PointAfter(or.t, 3)
+		absoluteHandlePos := or.path.PointAfter(3)
 
 		// difference between the handle positions
 		difference := absolutePoint.Sub(absoluteHandlePos)
 
-		or.path.P = absolutePoint.P
+		or.path.Start.P = absolutePoint.P
 		or.path.Segments[0].Move(vectorpath.Point{ // top right
 			T: 0,
 			P: -difference.P,
@@ -181,21 +197,4 @@ func (or *OrthogonalRectangle) SetHandle(i int, absolutePoint vectorpath.Point) 
 			P: 0,
 		})
 	}
-}
-
-// Move the rectangle by some amount
-func (or *OrthogonalRectangle) Move(by vectorpath.Point) {
-	or.t += by.T
-	or.path.P += by.P
-}
-
-// Location returns the absolute location of the shape
-func (or *OrthogonalRectangle) Location() vectorpath.Point {
-	return vectorpath.Point{P: or.path.P, T: or.t}
-}
-
-// SetLocation will set the location of the shape to a new position
-func (or *OrthogonalRectangle) SetLocation(point vectorpath.Point) {
-	or.t = point.T
-	or.path.P = point.P
 }

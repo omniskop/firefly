@@ -63,9 +63,19 @@ func main() {
 					Pattern: project.NewSolidColorRGBA(255, 0, 0, 255),
 				},
 				project.Element{
-					ZIndex:  0,
-					Shape:   shape.NewBentTrapezoid(vectorpath.Point{0.6, 15}, vectorpath.Point{0.4, 20}, 0.3, 0.5),
-					Pattern: project.NewSolidColorRGBA(255, 0, 0, 255),
+					ZIndex: 0,
+					Shape:  shape.NewBentTrapezoid(vectorpath.Point{0.6, 15}, vectorpath.Point{0.4, 20}, 0.3, 0.5),
+					Pattern: &project.LinearGradient{
+						Start: project.GradientAnchorPoint{
+							Color: color.RGBA{R: 255, G: 0, B: 129, A: 255},
+							Point: vectorpath.Point{P: 0, T: 0},
+						},
+						Stop: project.GradientAnchorPoint{
+							Color: color.RGBA{R: 255, G: 99, B: 0, A: 255},
+							Point: vectorpath.Point{P: 1, T: 1},
+						},
+						Steps: nil,
+					},
 				},
 			},
 			Effects: []project.Effect{},

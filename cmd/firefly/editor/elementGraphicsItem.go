@@ -37,7 +37,7 @@ func newElementGraphicsItem(editor *Editor, element *project.Element) *elementGr
 		element:           element,
 		editor:            editor,
 	}
-	item.SetPos(qtPoint(element.Shape.Location()))
+	item.SetPos(qtPoint(element.Shape.Origin()))
 	item.updatePattern()
 	item.SetPen(noPen)
 	item.SetFlags(widgets.QGraphicsItem__ItemSendsScenePositionChanges | widgets.QGraphicsItem__ItemIsMovable)
@@ -48,7 +48,7 @@ func newElementGraphicsItem(editor *Editor, element *project.Element) *elementGr
 
 func (item *elementGraphicsItem) updatePath() {
 	item.ignoreNextPositionChange = true
-	item.SetPos(qtPoint(item.element.Shape.Location()))
+	item.SetPos(qtPoint(item.element.Shape.Origin()))
 	item.SetPath(pathFromElement(item.element))
 	item.updateHandles(-1)
 }
@@ -85,7 +85,7 @@ func (item *elementGraphicsItem) itemChangeEvent(change widgets.QGraphicsItem__G
 			item.ignoreNextPositionChange = false
 			goto end
 		}
-		item.element.Shape.SetLocation(vpPoint(item.ScenePos()))
+		item.element.Shape.SetOrigin(vpPoint(item.ScenePos()))
 	}
 	//if change == widgets.QGraphicsItem__ItemPositionChange {
 	//	newPos := core.NewQPointFFromPointer(value.Pointer())

@@ -1,6 +1,8 @@
 package project
 
-import "github.com/omniskop/firefly/pkg/project/vectorpath"
+import (
+	"github.com/omniskop/firefly/pkg/project/vectorpath"
+)
 
 // An Element that is located at a specific point in time in the scene
 type Element struct {
@@ -14,23 +16,24 @@ type Element struct {
 // Local coordinates are at (0,0) at the top left of the bounding box of the shape and (1,1) at the bottom right.
 // Relative coordinates have their origin at the top left of the bounding box of the shape but their scale is the same as the scene.
 func (e *Element) MapLocalToRelative(local vectorpath.Point) vectorpath.Point {
+	bounds := e.Shape.Bounds()
 	return vectorpath.Point{
-		P: e.Shape.Width() * local.P,
-		T: e.Shape.Duration() * local.T,
-	}
+		P: bounds.Dimensions.P * local.P,
+		T: bounds.Dimensions.T * local.T,
+	}.Add(bounds.Location.Sub(e.Shape.Origin())) // in the case that the bounds location and the origin of the shape don't align
 }
 
 // MapRelativeToLocal maps relative coordinates to local coordinates.
 // See MapLocalToRelative for an explanation of the coordinates.
 func (e *Element) MapRelativeToLocal(relative vectorpath.Point) vectorpath.Point {
 	// TODO: maybe prevent width and duration from every being zero?
-	width := e.Shape.Width()
-	duration := e.Shape.Duration()
-	if width == 0 || duration == 0 {
+	bounds := e.Shape.Bounds()
+	if bounds.Dimensions.P == 0 || bounds.Dimensions.T == 0 {
 		return vectorpath.Point{P: 0, T: 0}
 	}
+	relative = relative.Add(e.Shape.Origin().Sub(bounds.Location)) // in the case that the bounds location and the origin of the shape don't align
 	return vectorpath.Point{
-		P: relative.P / width,
-		T: relative.T / duration,
+		P: relative.P / bounds.Dimensions.P,
+		T: relative.T / bounds.Dimensions.T,
 	}
 }
