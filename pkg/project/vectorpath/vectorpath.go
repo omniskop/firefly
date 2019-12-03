@@ -65,7 +65,26 @@ func Interpolate(a, b Point, f float64) Point {
 	}
 }
 
-// Path contains segments that are positioned relative to P
+// Rect describes a rectangle in the scene
+type Rect struct {
+	Location   Point
+	Dimensions Point
+}
+
+// NewRect creates a new rect with the location, width and duration
+func NewRect(p, t, w, d float64) Rect {
+	return Rect{
+		Location: Point{
+			P: p,
+			T: t,
+		},
+		Dimensions: Point{
+			P: w,
+			T: d,
+		},
+	}
+}
+
 type Path struct {
 	P        float64
 	Segments []Segment
