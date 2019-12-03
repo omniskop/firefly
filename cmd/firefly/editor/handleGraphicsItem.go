@@ -7,8 +7,28 @@ import (
 	"github.com/therecipe/qt/widgets"
 )
 
+var handlePen = gui.NewQPen4(
+	gui.NewQBrush3(gui.NewQColor3(255, 255, 255, 255), core.Qt__SolidPattern),
+	1,
+	core.Qt__SolidLine,
+	core.Qt__FlatCap,
+	core.Qt__BevelJoin,
+)
+
+var handleBrush *gui.QBrush
+
+func init() {
+	handlePen.SetCosmetic(true)
+
+	qGradient := gui.NewQLinearGradient3(0, 0, 1, 1)
+	qGradient.SetCoordinateMode(gui.QGradient__ObjectMode) // object mode => (0,0) <-> (1,1)
+	qGradient.SetColorAt(0, gui.NewQColor3(0, 198, 255, 255))
+	qGradient.SetColorAt(1, gui.NewQColor3(0, 169, 218, 255))
+	handleBrush = gui.NewQBrush10(qGradient)
+}
+
 type handleGraphicsItem struct {
-	*widgets.QGraphicsPixmapItem
+	*widgets.QGraphicsEllipseItem
 	parent                   *elementGraphicsItem
 	index                    int
 	ignoreNextPositionChange bool
@@ -16,17 +36,26 @@ type handleGraphicsItem struct {
 }
 
 func newHandleGraphicsItem(parent *elementGraphicsItem, point vectorpath.Point, index int) *handleGraphicsItem {
-	picture := gui.NewQIcon5("assets/images/testPicture/testPicture.png").Pixmap2(25, 25, gui.QIcon__Normal, gui.QIcon__On)
+	const diameter float64 = 13
 
 	item := handleGraphicsItem{
-		QGraphicsPixmapItem: widgets.NewQGraphicsPixmapItem2(picture, parent),
-		parent:              parent,
-		index:               index,
-		moveStartPosition:   core.NewQPointF(),
+		QGraphicsEllipseItem: widgets.NewQGraphicsEllipseItem2(
+			core.NewQRectF2(
+				core.NewQPointF3(-diameter/2, -diameter/2),
+				core.NewQSizeF3(diameter, diameter),
+			),
+			parent,
+		),
+		parent:            parent,
+		index:             index,
+		moveStartPosition: core.NewQPointF(),
 	}
 
 	item.SetPos(qtPoint(point.Sub(parent.element.Shape.Origin()))) // convert the scene coordinate to parent coordinates
 	item.SetFlags(widgets.QGraphicsItem__ItemIgnoresTransformations | widgets.QGraphicsItem__ItemIsMovable | widgets.QGraphicsItem__ItemSendsScenePositionChanges)
+
+	item.SetPen(handlePen)
+	item.SetBrush(handleBrush)
 
 	// connect all necessary events
 	item.ConnectItemChange(item.itemChangeEvent)
