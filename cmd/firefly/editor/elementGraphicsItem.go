@@ -25,17 +25,17 @@ func init() {
 type elementGraphicsItem struct {
 	*widgets.QGraphicsPathItem                       // the underlying path in the QGraphicsScene
 	element                    *project.Element      // the element
-	editor                     *Editor               // the parent editor this element belongs to
+	parent                     *stage                // the parent editor this element belongs to
 	handles                    []*handleGraphicsItem // the handle items that are visible when the element is selected
 	gradientItem               *gradientGraphicsItem
 	ignoreNextPositionChange   bool
 }
 
-func newElementGraphicsItem(editor *Editor, element *project.Element) *elementGraphicsItem {
+func newElementGraphicsItem(parentStage *stage, element *project.Element) *elementGraphicsItem {
 	item := elementGraphicsItem{
 		QGraphicsPathItem: widgets.NewQGraphicsPathItem2(pathFromElement(element), nil),
 		element:           element,
-		editor:            editor,
+		parent:            parentStage,
 	}
 	item.SetPos(qtPoint(element.Shape.Origin()))
 	item.updatePattern()
@@ -120,7 +120,7 @@ func (item *elementGraphicsItem) selectElement() {
 		}
 	}
 
-	item.editor.elementSelected(item)
+	item.parent.elementSelected(item)
 }
 
 func (item *elementGraphicsItem) deselectElement() {
