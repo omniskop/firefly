@@ -81,9 +81,9 @@ func main() {
 			Effects: []project.Effect{},
 		},
 		Audio: project.Audio{
-			Title:  "song title",
-			Author: "Salvatore Ganacci",
-			Genres: []string{"trap", "house", "EDM"},
+			Title:  "All That Matters",
+			Author: "Professor Kliq",
+			Genres: []string{"electronic", "dance"},
 			File:   nil,
 		},
 		AudioOffset: 0,
