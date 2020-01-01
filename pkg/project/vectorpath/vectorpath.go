@@ -85,6 +85,11 @@ func NewRect(p, t, w, d float64) Rect {
 	}
 }
 
+// IncludesTime returns true if the given time is included in the rectangle
+func (r Rect) IncludesTime(time float64) bool {
+	return r.Location.T < time && r.Location.T+r.Dimensions.T > time
+}
+
 // Path contains segments that are positioned relative to the Start
 type Path struct {
 	Start    Point // TODO: check if this can be removed

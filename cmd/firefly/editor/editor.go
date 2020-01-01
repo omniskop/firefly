@@ -71,14 +71,22 @@ func (e *Editor) UpdateTick() {
 	if e.playing {
 		audioTime := e.player.Time()
 		e.stage.setTime(audioTime)
-	} else {
-		audioTime := e.stage.time()
-		e.player.SetTime(audioTime)
 	}
 }
 
 func (e *Editor) UpdateScrollPosition(float64) {
 
+}
+
+func (e *Editor) Time() float64 {
+	// TODO: implement AudioOffset
+	return e.player.Time()
+}
+
+func (e *Editor) SetTime(t float64) {
+	// TODO: implement AudioOffset
+	e.player.SetTime(t)
+	//e.stage.setTime(t)
 }
 
 func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {

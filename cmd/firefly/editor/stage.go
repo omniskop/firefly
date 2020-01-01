@@ -62,10 +62,11 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 	s.ConnectEvent(s.event)
 	s.ConnectEventFilter(s.eventFilter)
 	s.ConnectDrawForeground(s.drawForeground)
+	scene.ConnectChanged(s.sceneChanged)
 
 	s.ConnectScrollContentsBy(func(dx int, dy int) {
 		s.ScrollContentsByDefault(dx, dy)
-		//logrus.Trace(s.VerticalScrollBar().Value(), s.VerticalScrollBar().Value())
+		s.updateNeedleFrame()
 	})
 
 	scene.ConnectMousePressEvent(s.sceneMousePressEvent)
@@ -83,15 +84,7 @@ func (s *stage) createElements() {
 	}
 }
 
-func (s *stage) startScaling() {
-	if time.Since(s.lastScrollTimeSave) > 100*time.Millisecond {
-		s.lastScrollTimeSave = time.Now()
-		s.scrollTime = s.time()
-	}
-}
-
 func (s *stage) scaleScene(factor float64) {
-	s.startScaling()
 	if verticalTimeAxis {
 		s.Scale(1, factor)
 	} else {
@@ -99,7 +92,7 @@ func (s *stage) scaleScene(factor float64) {
 	}
 	s.updateScale()
 
-	s.setTime(s.scrollTime)
+	s.setTime(s.editor.Time())
 }
 
 func (s *stage) updateScale() {
@@ -123,15 +116,12 @@ func (s *stage) time() float64 {
 }
 
 func (s *stage) setTime(t float64) {
-	/*difference := t - s.Time()
-	currentCenter := s.MapToScene5(s.Viewport().Width()/2, s.Viewport().Height()/2)
-	if verticalTimeAxis {
-		currentCenter.SetY(currentCenter.Y() + difference)
-	} else {
-		currentCenter.SetX(currentCenter.X() + difference)
-	}
-	s.CenterOn(currentCenter)*/
 	s.scrollSceneToLogical(core.NewQPointF3(t, t), core.NewQPoint2(needlePosition, needlePosition))
+	}
+
+func (s *stage) updateNeedleFrame() {
+	s.needleFrame = s.scanner.Scan(s.time())
+	s.streamer.Stream(s.needleFrame)
 }
 
 func (s *stage) scrollSceneToLogical(scenePoint *core.QPointF, viewportPoint *core.QPoint) {
@@ -142,6 +132,10 @@ func (s *stage) scrollSceneToLogical(scenePoint *core.QPointF, viewportPoint *co
 	} else {
 		s.HorizontalScrollBar().SetValue(int(viewPoint.X()) - viewportPoint.X())
 	}
+}
+
+func (s *stage) sceneChanged([]*core.QRectF) {
+	s.updateNeedleFrame()
 }
 
 func (s *stage) elementSelected(item *elementGraphicsItem) {
@@ -200,6 +194,7 @@ func (s *stage) wheelEvent(event *gui.QWheelEvent) {
 
 	event.Ignore() // TODO: is this necessary?
 	s.WheelEventDefault(event)
+	s.editor.SetTime(s.time())
 }
 
 func (s *stage) event(event *core.QEvent) bool {
@@ -252,13 +247,43 @@ func (s *stage) resizeEvent(event *gui.QResizeEvent) {
 }
 
 func (s *stage) drawForeground(painter *gui.QPainter, rect *core.QRectF) {
-	viewportPoint := s.MapToScene(core.NewQPoint2(0, needlePosition))
+	var needleStart *core.QPointF
+	var needleStop *core.QPointF
+	var gradientStart *core.QPointF
+	if verticalTimeAxis {
+		needleStart = s.MapToScene(core.NewQPoint2(0, needlePosition))
+		needleStop = core.NewQPointF3(editorViewWidth, needleStart.Y())
+		gradientStart = s.MapToScene(core.NewQPoint2(0, needlePosition-20))
+	} else {
+		needleStart = s.MapToScene(core.NewQPoint2(needlePosition, 0))
+		needleStop = core.NewQPointF3(needleStart.X(), editorViewWidth)
+		gradientStart = s.MapToScene(core.NewQPoint2(needlePosition-20, 0))
+	}
 
-	pen := gui.NewQPen3(gui.NewQColor3(0, 255, 0, 255))
-	pen.SetWidth(5)
+	// === draw a line at the position of the needle
+	pen := gui.NewQPen3(gui.NewQColor3(255, 255, 255, 255))
+	pen.SetWidth(2)
 	pen.SetCosmetic(true)
 
-	line := widgets.NewQGraphicsLineItem2(core.NewQLineF3(0, viewportPoint.Y(), editorViewWidth, viewportPoint.Y()), nil)
-	line.SetPen(pen)
-	line.Paint(painter, widgets.NewQStyleOptionGraphicsItem(), nil)
+	painter.SetPen(pen)
+	painter.DrawLine(core.NewQLineF2(needleStart, needleStop))
+
+	// === draw preview of pixels
+	painter.SetPen(noPen)
+	//fill := gui.NewQBrush3(gui.NewQColor3(0, 0, 0, 255), core.Qt__SolidPattern)
+	pixelWidth := editorViewWidth / float64(len(s.needleFrame.Pixel))
+	gradient := gui.NewQLinearGradient2(gradientStart, needleStart)
+	for i, pixel := range s.needleFrame.Pixel {
+		//fill.SetColor(NewQColorFromColor(pixel))
+		//painter.SetBrush(fill)
+		gradient.SetColorAt(1, NewQColorFromColor(pixel))
+		gradient.SetColorAt(.5, NewQColorFromColor(pixel))
+		gradient.SetColorAt(0, NewQColorFromColor(color.Transparent))
+		painter.SetBrush(gui.NewQBrush10(gradient))
+		if verticalTimeAxis {
+			painter.DrawRect(core.NewQRectF4(float64(i)*pixelWidth, gradientStart.Y(), pixelWidth, needleStart.Y()-gradientStart.Y()))
+		} else {
+			painter.DrawRect(core.NewQRectF4(gradientStart.Y(), float64(i)*pixelWidth, needleStart.Y()-gradientStart.Y(), pixelWidth))
+		}
+	}
 }
