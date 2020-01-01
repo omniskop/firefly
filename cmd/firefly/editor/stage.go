@@ -1,13 +1,15 @@
 package editor
 
 import (
+	"fmt"
+	"image/color"
 	"runtime"
-	"time"
 
 	"github.com/omniskop/firefly/pkg/project"
+	"github.com/omniskop/firefly/pkg/scanner"
+	"github.com/omniskop/firefly/pkg/streamer"
 
 	"github.com/sirupsen/logrus"
-
 	"github.com/therecipe/qt/core"
 	"github.com/therecipe/qt/gui"
 	"github.com/therecipe/qt/widgets"
@@ -17,18 +19,25 @@ const needlePosition = 100
 
 type stage struct {
 	*widgets.QGraphicsView
-	scene              *widgets.QGraphicsScene
-	projectScene       *project.Scene
-	editor             *Editor
-	duration           float64
-	selection          *elementGraphicsItem
-	lastScrollTimeSave time.Time
-	scrollTime         float64
+	scene        *widgets.QGraphicsScene
+	projectScene *project.Scene
+	editor       *Editor
+	duration     float64
+	selection    *elementGraphicsItem
+
+	scanner     scanner.Scanner
+	needleFrame scanner.Frame
+	streamer    streamer.Streamer
 }
 
 func newStage(editor *Editor, projectScene *project.Scene, duration float64) *stage {
 	scene := widgets.NewQGraphicsScene(nil)
 	scene.SetSceneRect2(0, 0, editorViewWidth, duration)
+
+	udpWriter, err := streamer.NewUDPWriter("192.168.178.35:20202")
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	s := stage{
 		QGraphicsView: widgets.NewQGraphicsView(nil),
@@ -36,6 +45,8 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 		projectScene:  projectScene,
 		editor:        editor,
 		duration:      duration,
+		scanner:       scanner.New(projectScene, 60),
+		streamer:      streamer.New(udpWriter),
 	}
 
 	s.SetObjectName("mainEditorView")
@@ -117,7 +128,7 @@ func (s *stage) time() float64 {
 
 func (s *stage) setTime(t float64) {
 	s.scrollSceneToLogical(core.NewQPointF3(t, t), core.NewQPoint2(needlePosition, needlePosition))
-	}
+}
 
 func (s *stage) updateNeedleFrame() {
 	s.needleFrame = s.scanner.Scan(s.time())
