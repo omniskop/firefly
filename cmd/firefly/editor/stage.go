@@ -163,7 +163,7 @@ func (s *stage) elementSelected(item *elementGraphicsItem) {
 
 func (s *stage) sceneMousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
 	// The builtin selection mechanism has some unwanted side effects that resulted in the need to implement my own.
-	// The items themselves will know when they get clicked but I don't know when the used click on the background.
+	// The items themselves will know when they get clicked but I don't know when the user clicks on the background.
 	// The best solution to this problem would probably be to create an item that fills the whole scene and that would
 	// received mouse press events when no other item got hit.
 	// I tried to fully reimplement the mouse press event without calling the default implementation so that it would
