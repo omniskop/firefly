@@ -1,6 +1,9 @@
 package editor
 
 import (
+	"github.com/omniskop/firefly/pkg/project"
+	"github.com/omniskop/firefly/pkg/project/shape"
+	"github.com/sirupsen/logrus"
 	"github.com/therecipe/qt/core"
 	"github.com/therecipe/qt/gui"
 	"github.com/therecipe/qt/widgets"
@@ -17,6 +20,7 @@ func newEditorActions() editorActions {
 	actions := editorActions{}
 
 	actions.cursor = newQActionWithIcon("Move", "assets/images/toolbar cursor.imageset/toolbar cursor.png")
+	actions.cursor.SetChecked(true)
 
 	actions.newRect = widgets.NewQAction2("Create Rectangle", nil)
 	actions.newRect.SetCheckable(true)
@@ -35,10 +39,24 @@ func newEditorActions() editorActions {
 	return actions
 }
 
-func (actions editorActions) ConnectToEditor(e *Editor) {
+func (actions editorActions) connectToEditor(e *Editor) {
 	e.userActions.cursor.ConnectTriggered(e.ToolbarElementAction)
 	e.userActions.newRect.ConnectTriggered(e.ToolbarElementAction)
 	e.userActions.newTrapez.ConnectTriggered(e.ToolbarElementAction)
+}
+
+func (actions editorActions) getSelectedShape() project.Shape {
+	switch actions.group.CheckedAction().Pointer() {
+	case actions.newRect.Pointer():
+		return shape.NewEmptyOrthogonalRectangle()
+	case actions.newTrapez.Pointer():
+		return shape.NewEmptyBentTrapezoid()
+	default:
+		logrus.Error("a toolbar action is selected that has no known shape that can be created in the stage")
+		logrus.Error("the pointer to the action is: ", actions.group.CheckedAction().Pointer())
+		logrus.Errorf("all known action pointers are: \n%v", actions)
+		return nil
+	}
 }
 
 func newQActionWithIcon(name string, iconPath string) *widgets.QAction {

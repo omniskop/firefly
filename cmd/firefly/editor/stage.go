@@ -5,6 +5,8 @@ import (
 	"image/color"
 	"runtime"
 
+	"github.com/omniskop/firefly/pkg/project/vectorpath"
+
 	"github.com/omniskop/firefly/pkg/project"
 	"github.com/omniskop/firefly/pkg/scanner"
 	"github.com/omniskop/firefly/pkg/streamer"
@@ -24,6 +26,9 @@ type stage struct {
 	editor       *Editor
 	duration     float64
 	selection    *elementGraphicsItem
+
+	creationElement *elementGraphicsItem
+	creationStart   vectorpath.Point
 
 	scanner     scanner.Scanner
 	needleFrame scanner.Frame
@@ -81,6 +86,8 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 	})
 
 	scene.ConnectMousePressEvent(s.sceneMousePressEvent)
+	scene.ConnectMouseReleaseEvent(s.sceneMouseReleaseEvent)
+	scene.ConnectMouseMoveEvent(s.sceneMouseMoveEvent)
 
 	return &s
 }
@@ -93,6 +100,11 @@ func (s *stage) createElements() {
 	for i := range s.projectScene.Elements {
 		s.scene.AddItem(newElementGraphicsItem(s, &s.projectScene.Elements[i]))
 	}
+}
+
+func (s *stage) addElement(element *project.Element) {
+	s.projectScene.Elements = append(s.projectScene.Elements, *element)
+	s.scene.AddItem(newElementGraphicsItem(s, &s.projectScene.Elements[len(s.projectScene.Elements)-1]))
 }
 
 func (s *stage) scaleScene(factor float64) {
@@ -169,6 +181,20 @@ func (s *stage) sceneMousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
 	// I tried to fully reimplement the mouse press event without calling the default implementation so that it would
 	// only be required to find the clicked item once but that was more complicated than I thought because
 	// it doesn't seems possible to use the grabMouse mechanism of qt and I would also need to reimplement that.
+
+	if s.editor.userActions.group.CheckedAction().Pointer() != s.editor.userActions.cursor.Pointer() {
+		s.creationElement = newElementGraphicsItem(s, &project.Element{
+			ZIndex:  0,
+			Shape:   s.editor.userActions.getSelectedShape(),
+			Pattern: project.NewSolidColorRGBA(255, 0, 0, 255),
+		})
+		s.scene.AddItem(s.creationElement)
+		s.creationStart = vpPoint(event.ScenePos())
+		s.creationElement.selectElement()
+		logrus.WithField("start", s.creationStart).Debug("a new element is being created")
+		goto exit
+	}
+
 	if s.selection != nil {
 		hitItem := s.scene.ItemAt(event.ScenePos(), s.ViewportTransform())
 		if hitItem == nil {
@@ -176,8 +202,34 @@ func (s *stage) sceneMousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
 			s.selection = nil
 		}
 	}
+
+exit:
 	event.Ignore()
 	s.scene.MousePressEventDefault(event)
+}
+
+func (s *stage) sceneMouseReleaseEvent(event *widgets.QGraphicsSceneMouseEvent) {
+	if s.creationElement != nil {
+		s.projectScene.Elements = append(s.projectScene.Elements, *s.creationElement.element)
+		// we do this to get the new correct reference to the element in the slice because element is copied
+		s.creationElement.element = &s.projectScene.Elements[len(s.projectScene.Elements)-1]
+		s.creationElement = nil
+	}
+
+	event.Ignore()
+	s.scene.MouseReleaseEventDefault(event)
+}
+
+func (s *stage) sceneMouseMoveEvent(event *widgets.QGraphicsSceneMouseEvent) {
+	if s.creationElement != nil {
+		mousePosition := vpPoint(event.ScenePos())
+		s.creationElement.element.Shape.SetCreationBounds(s.creationStart, mousePosition.Sub(s.creationStart))
+		s.creationElement.updatePath()
+		logrus.WithFields(logrus.Fields{"origin": s.creationStart, "size": mousePosition.Sub(s.creationStart)}).Debug("creation bounds update")
+	}
+
+	event.Ignore()
+	s.scene.MouseMoveEventDefault(event)
 }
 
 func (s *stage) wheelEvent(event *gui.QWheelEvent) {

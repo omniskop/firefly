@@ -1,6 +1,8 @@
 package editor
 
 import (
+	"fmt"
+
 	"github.com/omniskop/firefly/cmd/firefly/audio"
 	"github.com/omniskop/firefly/pkg/project"
 	"github.com/sirupsen/logrus"
@@ -47,7 +49,7 @@ func New(proj *project.Project) *Editor {
 		updateTimer: timer,
 		userActions: newEditorActions(),
 	}
-	edit.userActions.ConnectToEditor(edit)
+	edit.userActions.connectToEditor(edit)
 	edit.stage = newStage(edit, &proj.Scene, proj.Duration)
 	window.SetCentralWidget(edit.stage)
 	window.AddToolBar(core.Qt__TopToolBarArea, buildEditorToolbar(edit.userActions))
@@ -70,6 +72,7 @@ func New(proj *project.Project) *Editor {
 func (e *Editor) UpdateTick() {
 	if e.playing {
 		audioTime := e.player.Time()
+		fmt.Println("audio time: ", audioTime)
 		e.stage.setTime(audioTime)
 	}
 }
@@ -108,6 +111,10 @@ func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
 			e.playing = true
 			e.player.Play()
 		}
+	case core.Qt__Key_9:
+		t := e.stage.time()
+		logrus.Debug("time is ", t)
+		e.stage.setTime(t)
 	}
 }
 

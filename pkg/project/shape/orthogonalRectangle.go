@@ -27,6 +27,10 @@ func NewOrthogonalRectangle(pos vectorpath.Point, width float64, height float64)
 	}
 }
 
+func NewEmptyOrthogonalRectangle() *OrthogonalRectangle {
+	return NewOrthogonalRectangle(vectorpath.Point{}, 0, 0)
+}
+
 // Time returns the temporal position of the rectangle in seconds
 func (or *OrthogonalRectangle) Time() float64 {
 	return or.path.Start.T
@@ -197,4 +201,9 @@ func (or *OrthogonalRectangle) SetHandle(i int, absolutePoint vectorpath.Point) 
 			P: 0,
 		})
 	}
+}
+
+func (or *OrthogonalRectangle) SetCreationBounds(origin vectorpath.Point, size vectorpath.Point) {
+	or.path.Start = origin
+	or.SetHandle(2, origin.Add(size))
 }

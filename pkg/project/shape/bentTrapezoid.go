@@ -44,6 +44,10 @@ func NewBentTrapezoid(topPosition vectorpath.Point, bottomPosition vectorpath.Po
 	}
 }
 
+func NewEmptyBentTrapezoid() *BentTrapezoid {
+	return NewBentTrapezoid(vectorpath.Point{}, vectorpath.Point{}, 0, 0)
+}
+
 // Time returns the point in time where the shape start
 func (b *BentTrapezoid) Time() float64 {
 	return b.position.T
@@ -213,4 +217,11 @@ func (b *BentTrapezoid) SetHandle(index int, absolutePoint vectorpath.Point) {
 		b.bend.P = (absolutePoint.P - b.position.P - b.bottomOffset*b.bend.T) / (b.topWidth + (b.bottomWidth-b.topWidth)*b.bend.T)
 		b.bend.P = math.Min(1, math.Max(0, b.bend.P))
 	}
+}
+
+func (b *BentTrapezoid) SetCreationBounds(origin vectorpath.Point, size vectorpath.Point) {
+	b.position = origin
+	b.topWidth = size.P
+	b.bottomWidth = size.P
+	b.duration = size.T
 }
