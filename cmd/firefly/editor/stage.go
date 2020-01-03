@@ -107,6 +107,22 @@ func (s *stage) addElement(element *project.Element) {
 	s.scene.AddItem(newElementGraphicsItem(s, &s.projectScene.Elements[len(s.projectScene.Elements)-1]))
 }
 
+func (s *stage) removeElement(item *elementGraphicsItem) {
+	if s.selection == item {
+		s.selection = nil
+	}
+	if s.creationElement == item {
+		s.selection = nil
+	}
+	s.scene.RemoveItem(item)
+	for i := range s.projectScene.Elements {
+		if &s.projectScene.Elements[i] == item.element {
+			s.projectScene.Elements = append(s.projectScene.Elements[:i], s.projectScene.Elements[i+1:]...)
+			break
+		}
+	}
+}
+
 func (s *stage) scaleScene(factor float64) {
 	if verticalTimeAxis {
 		s.Scale(1, factor)

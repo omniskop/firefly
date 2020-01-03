@@ -20,6 +20,7 @@ func newEditorActions() editorActions {
 	actions := editorActions{}
 
 	actions.cursor = newQActionWithIcon("Move", "assets/images/toolbar cursor.imageset/toolbar cursor.png")
+	actions.cursor.SetShortcut(gui.NewQKeySequence3(int(core.Qt__Key_V), 0, 0, 0))
 	actions.cursor.SetChecked(true)
 
 	actions.newRect = widgets.NewQAction2("Create Rectangle", nil)

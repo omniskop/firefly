@@ -111,6 +111,10 @@ func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
 			e.playing = true
 			e.player.Play()
 		}
+	case core.Qt__Key_Backspace:
+		if e.stage.selection != nil {
+			e.stage.removeElement(e.stage.selection)
+		}
 	case core.Qt__Key_9:
 		t := e.stage.time()
 		logrus.Debug("time is ", t)
