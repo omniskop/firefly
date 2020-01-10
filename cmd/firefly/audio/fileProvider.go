@@ -2,6 +2,7 @@ package audio
 
 import (
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -20,7 +21,11 @@ func init() {
 type fileProvider struct{}
 
 func (p *fileProvider) CanProvide(audio project.Audio) bool {
-	files, errs := GetAllFiles([]string{"/Users/jr/Documents/Studium/Abschlussarbeit/firefly/assets/audio"})
+	currentFolder, err := os.Getwd()
+	if err != nil {
+		currentFolder = "/"
+	}
+	files, errs := GetAllFiles([]string{path.Join(currentFolder, "assets/audio")})
 	for _, err := range errs {
 		logrus.Error("[Audio][FileProvider] ", err)
 	}
@@ -38,7 +43,11 @@ func (p *fileProvider) CanProvide(audio project.Audio) bool {
 }
 
 func (p *fileProvider) Provide(audio project.Audio) (Player, bool) {
-	files, errs := GetAllFiles([]string{"/Users/jr/Documents/Studium/Abschlussarbeit/firefly/assets/audio"})
+	currentFolder, err := os.Getwd()
+	if err != nil {
+		currentFolder = "/"
+	}
+	files, errs := GetAllFiles([]string{path.Join(currentFolder, "assets/audio")})
 	for _, err := range errs {
 		logrus.Error("[Audio][FileProvider] ", err)
 	}
@@ -64,15 +73,17 @@ func GetFiles(basepath string) ([]potentialFile, []error) {
 	var files []potentialFile
 	var errs []error
 	filepath.Walk(basepath, func(path string, info os.FileInfo, err error) error {
-		files = append(files, potentialFile{
-			path: path,
-			info: info,
-		})
+
 		if err != nil {
 			errs = append(errs, err)
-			if info.IsDir() {
+			if info != nil && info.IsDir() {
 				return filepath.SkipDir
 			}
+		} else if !info.IsDir() {
+			files = append(files, potentialFile{
+				path: path,
+				info: info,
+			})
 		}
 		return nil
 	})
