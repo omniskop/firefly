@@ -1,7 +1,6 @@
 package editor
 
 import (
-	"github.com/omniskop/firefly/pkg/project"
 	"github.com/omniskop/firefly/pkg/project/shape"
 	"github.com/sirupsen/logrus"
 	"github.com/therecipe/qt/core"
@@ -46,7 +45,7 @@ func (actions editorActions) connectToEditor(e *Editor) {
 	e.userActions.newTrapez.ConnectTriggered(e.ToolbarElementAction)
 }
 
-func (actions editorActions) getSelectedShape() project.Shape {
+func (actions editorActions) getSelectedShape() shape.Shape {
 	switch actions.group.CheckedAction().Pointer() {
 	case actions.newRect.Pointer():
 		return shape.NewEmptyOrthogonalRectangle()

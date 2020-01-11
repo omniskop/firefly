@@ -3,6 +3,8 @@ package editor
 import (
 	"fmt"
 
+	"github.com/omniskop/firefly/pkg/storage"
+
 	"github.com/omniskop/firefly/cmd/firefly/audio"
 	"github.com/omniskop/firefly/pkg/project"
 	"github.com/sirupsen/logrus"
@@ -114,6 +116,13 @@ func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
 	case core.Qt__Key_Backspace:
 		if e.stage.selection != nil {
 			e.stage.removeElement(e.stage.selection)
+		}
+	case core.Qt__Key_S:
+		err := storage.SaveFile("../project_save.json", e.project)
+		if err != nil {
+			fmt.Printf("unable to save: %v\n", err)
+		} else {
+			fmt.Println("file saved!")
 		}
 	case core.Qt__Key_9:
 		t := e.stage.time()

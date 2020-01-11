@@ -1,9 +1,10 @@
 package shape
 
 import (
+	"encoding/json"
+	"errors"
 	"math"
 
-	"github.com/omniskop/firefly/pkg/project"
 	"github.com/omniskop/firefly/pkg/project/vectorpath"
 )
 
@@ -30,7 +31,7 @@ type BentTrapezoid struct {
 	bend         vectorpath.Point
 }
 
-var _ project.Shape = (*BentTrapezoid)(nil) // make sure BentTrapezoid implements the Shape interface
+var _ Shape = (*BentTrapezoid)(nil) // make sure BentTrapezoid implements the Shape interface
 
 // NewBentTrapezoid returns a new BentTrapezoid
 func NewBentTrapezoid(topPosition vectorpath.Point, bottomPosition vectorpath.Point, topWidth float64, bottomWidth float64) *BentTrapezoid {
@@ -224,4 +225,64 @@ func (b *BentTrapezoid) SetCreationBounds(origin vectorpath.Point, size vectorpa
 	b.topWidth = size.P
 	b.bottomWidth = size.P
 	b.duration = size.T
+}
+
+func (b *BentTrapezoid) MarshalJSON() ([]byte, error) {
+	var values = map[string]interface{}{
+		"__TYPE__": "BentTrapezoid",
+		"Shape": map[string]interface{}{
+			"Position":     b.position,
+			"TopWidth":     b.topWidth,
+			"BottomWidth":  b.bottomWidth,
+			"BottomOffset": b.bottomOffset,
+			"Duration":     b.duration,
+			"Bend":         b.bend,
+		},
+	}
+	return json.Marshal(values)
+}
+
+func (b *BentTrapezoid) UnmarshalJSON(raw []byte) error {
+	var values = make(map[string]interface{})
+	err := json.Unmarshal(raw, &values)
+	if err != nil {
+		return err
+	}
+
+	position, ok := values["Position"]
+	if !ok {
+		return errors.New("bent trapezoid has missing key 'Position")
+	}
+	positionMap := position.(map[string]interface{})
+	b.position.P = positionMap["P"].(float64)
+	b.position.T = positionMap["T"].(float64)
+	topWidth, ok := values["TopWidth"]
+	if !ok {
+		return errors.New("bent trapezoid has missing key 'TopWidth")
+	}
+	b.topWidth = topWidth.(float64)
+	bottomWidth, ok := values["BottomWidth"]
+	if !ok {
+		return errors.New("bent trapezoid has missing key 'BottomWidth")
+	}
+	b.bottomWidth = bottomWidth.(float64)
+	bottomOffset, ok := values["BottomOffset"]
+	if !ok {
+		return errors.New("bent trapezoid has missing key 'BottomOffset")
+	}
+	b.bottomOffset = bottomOffset.(float64)
+	duration, ok := values["Duration"]
+	if !ok {
+		return errors.New("bent trapezoid has missing key 'Duration")
+	}
+	b.duration = duration.(float64)
+	bend, ok := values["Bend"]
+	if !ok {
+		return errors.New("bent trapezoid has missing key 'Bend")
+	}
+	bendMap := bend.(map[string]interface{})
+	b.bend.P = bendMap["P"].(float64)
+	b.bend.T = bendMap["T"].(float64)
+
+	return nil
 }

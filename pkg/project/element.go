@@ -1,14 +1,18 @@
 package project
 
 import (
+	"encoding/json"
+
+	"github.com/omniskop/firefly/pkg/project/shape"
+
 	"github.com/omniskop/firefly/pkg/project/vectorpath"
 )
 
 // An Element that is located at a specific point in time in the scene
 type Element struct {
-	ZIndex  float64 // a coordinate relative to other elements in the scene. Higher numbers will be drawn on top of lower ones
-	Shape   Shape   // the actual visual shape of the element
-	Pattern Pattern // the pattern that fills the body of the element
+	ZIndex  float64     // a coordinate relative to other elements in the scene. Higher numbers will be drawn on top of lower ones
+	Shape   shape.Shape // the actual visual shape of the element
+	Pattern Pattern     // the pattern that fills the body of the element
 }
 
 // MapLocalToRelative maps local coordinates to relative coordinates.
@@ -36,4 +40,29 @@ func (e *Element) MapRelativeToLocal(relative vectorpath.Point) vectorpath.Point
 		P: relative.P / bounds.Dimensions.P,
 		T: relative.T / bounds.Dimensions.T,
 	}
+}
+
+// UnmarshalJSON will take data and try to parse it into an Element.
+// It takes care of handling the Shape and Pattern interfaces with their respective Unmarshal functions.
+func (e *Element) UnmarshalJSON(data []byte) error {
+	values := make(map[string]*json.RawMessage)
+	err := json.Unmarshal(data, &values)
+	if err != nil {
+		return err
+	}
+
+	shapeValue, err := shape.Unmarshal(*values["Shape"])
+	if err != nil {
+		return err
+	}
+	e.Shape = shapeValue
+
+	pattern, err := UnmarshalPattern(*values["Pattern"])
+	if err != nil {
+		return err
+	}
+	e.Pattern = pattern
+
+	err = json.Unmarshal(*values["ZIndex"], &e.ZIndex)
+	return err
 }

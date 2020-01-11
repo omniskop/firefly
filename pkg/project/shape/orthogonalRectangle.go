@@ -1,7 +1,9 @@
 package shape
 
 import (
-	"github.com/omniskop/firefly/pkg/project"
+	"encoding/json"
+	"errors"
+
 	"github.com/omniskop/firefly/pkg/project/vectorpath"
 )
 
@@ -10,7 +12,7 @@ type OrthogonalRectangle struct {
 	path vectorpath.Path
 }
 
-var _ project.Shape = (*OrthogonalRectangle)(nil) // make sure OrthogonalRectangle implements the Shape interface
+var _ Shape = (*OrthogonalRectangle)(nil) // make sure OrthogonalRectangle implements the Shape interface
 
 // NewOrthogonalRectangle creates a new shape with the top left position and width and height
 func NewOrthogonalRectangle(pos vectorpath.Point, width float64, height float64) *OrthogonalRectangle {
@@ -206,4 +208,43 @@ func (or *OrthogonalRectangle) SetHandle(i int, absolutePoint vectorpath.Point) 
 func (or *OrthogonalRectangle) SetCreationBounds(origin vectorpath.Point, size vectorpath.Point) {
 	or.path.Start = origin
 	or.SetHandle(2, origin.Add(size))
+}
+
+func (or *OrthogonalRectangle) MarshalJSON() ([]byte, error) {
+	var values = map[string]interface{}{
+		"__TYPE__": "OrthogonalRectangle",
+		"Shape": map[string]vectorpath.Point{
+			"Position":   or.path.Start,
+			"Dimensions": or.path.PointAfter(2).Sub(or.path.Start),
+		},
+	}
+	return json.Marshal(values)
+}
+
+func (or *OrthogonalRectangle) UnmarshalJSON(raw []byte) error {
+	var values = make(map[string]vectorpath.Point)
+	err := json.Unmarshal(raw, &values)
+	if err != nil {
+		return err
+	}
+
+	pos, ok := values["Position"]
+	if !ok {
+		return errors.New("orthogonal rectangle has missing key 'Position'")
+	}
+	dim, ok := values["Dimensions"]
+	if !ok {
+		return errors.New("orthogonal rectangle has missing key 'Dimensions'")
+	}
+
+	or.path = vectorpath.Path{
+		Start: pos,
+		Segments: []vectorpath.Segment{
+			&vectorpath.Line{Point: vectorpath.Point{P: dim.P, T: 0}},
+			&vectorpath.Line{Point: vectorpath.Point{P: 0, T: dim.T}},
+			&vectorpath.Line{Point: vectorpath.Point{P: -dim.P, T: 0}},
+			&vectorpath.Line{Point: vectorpath.Point{P: 0, T: -dim.T}},
+		},
+	}
+	return nil
 }
