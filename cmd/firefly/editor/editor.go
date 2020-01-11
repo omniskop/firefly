@@ -19,16 +19,17 @@ const verticalTimeAxis = true
 var noPen = gui.NewQPen2(core.Qt__NoPen)
 
 type Editor struct {
-	window      *widgets.QMainWindow
-	project     *project.Project
-	stage       *stage
-	player      audio.Player
-	playing     bool
-	updateTimer *core.QTimer
-	userActions editorActions
+	applicationCallbacks map[string]func()
+	window               *widgets.QMainWindow
+	project              *project.Project
+	stage                *stage
+	player               audio.Player
+	playing              bool
+	updateTimer          *core.QTimer
+	userActions          editorActions
 }
 
-func New(proj *project.Project) *Editor {
+func New(proj *project.Project, applicationCallbacks map[string]func()) *Editor {
 	window := widgets.NewQMainWindow(nil, 0)
 	window.SetMinimumSize2(300, 200)
 	window.SetWindowTitle("FireFly Editor")
@@ -43,13 +44,14 @@ func New(proj *project.Project) *Editor {
 	timer.SetInterval(1000 / 60)
 
 	edit := &Editor{
-		window:      window,
-		project:     proj,
-		stage:       nil,
-		player:      player,
-		playing:     false,
-		updateTimer: timer,
-		userActions: newEditorActions(),
+		applicationCallbacks: applicationCallbacks,
+		window:               window,
+		project:              proj,
+		stage:                nil,
+		player:               player,
+		playing:              false,
+		updateTimer:          timer,
+		userActions:          newEditorActions(),
 	}
 	edit.userActions.connectToEditor(edit)
 	edit.stage = newStage(edit, &proj.Scene, proj.Duration)
@@ -100,6 +102,19 @@ func (e *Editor) ToolbarElementAction(checked bool) {
 	} else {
 		e.stage.SetCursor(gui.NewQCursor2(core.Qt__CrossCursor))
 	}
+}
+
+func (e *Editor) Save(bool) {
+	//path := widgets.NewQFileDialog(e.window, core.Qt__Dialog)
+	path := widgets.QFileDialog_GetSaveFileName(e.window, "Save the Project", "./project.ffp", "", "", 0)
+	err := storage.SaveFile(path, e.project)
+	if err != nil {
+		logrus.Error(err)
+	}
+}
+
+func (e *Editor) Open(bool) {
+	e.applicationCallbacks["open"]()
 }
 
 func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {

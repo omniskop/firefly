@@ -13,21 +13,21 @@ type editorActions struct {
 	newRect   *widgets.QAction
 	newTrapez *widgets.QAction
 	group     *widgets.QActionGroup
+	save      *widgets.QAction
+	open      *widgets.QAction
 }
 
 func newEditorActions() editorActions {
 	actions := editorActions{}
 
-	actions.cursor = newQActionWithIcon("Move", "assets/images/toolbar cursor.imageset/toolbar cursor.png")
+	actions.cursor = newCheckableQActionWithIcon("Move", "assets/images/toolbar cursor.imageset/toolbar cursor.png")
 	actions.cursor.SetShortcut(gui.NewQKeySequence3(int(core.Qt__Key_V), 0, 0, 0))
 	actions.cursor.SetChecked(true)
 
 	actions.newRect = widgets.NewQAction2("Create Rectangle", nil)
-	actions.newRect.SetCheckable(true)
 	actions.newRect.SetIcon(gui.NewQIcon5("assets/images/toolbar new rect.imageset/toolbar new rect.png"))
 
 	actions.newTrapez = widgets.NewQAction2("Create Trapezoid", nil)
-	actions.newTrapez.SetCheckable(true)
 	actions.newTrapez.SetIcon(gui.NewQIcon5("assets/images/toolbar new trapez.imageset/toolbar new trapez.png"))
 
 	actions.group = widgets.NewQActionGroup(nil)
@@ -36,6 +36,12 @@ func newEditorActions() editorActions {
 	actions.group.AddAction(actions.newRect)
 	actions.group.AddAction(actions.newTrapez)
 
+	actions.save = newQActionWithIcon("Save", "assets/images/toolbar save.imageset/toolbar save.png")
+	actions.save.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Save))
+
+	actions.open = newQActionWithIcon("Save", "assets/images/toolbar open.imageset/toolbar open.png")
+	actions.open.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Open))
+
 	return actions
 }
 
@@ -43,6 +49,8 @@ func (actions editorActions) connectToEditor(e *Editor) {
 	e.userActions.cursor.ConnectTriggered(e.ToolbarElementAction)
 	e.userActions.newRect.ConnectTriggered(e.ToolbarElementAction)
 	e.userActions.newTrapez.ConnectTriggered(e.ToolbarElementAction)
+	e.userActions.save.ConnectTriggered(e.Save)
+	e.userActions.open.ConnectTriggered(e.Open)
 }
 
 func (actions editorActions) getSelectedShape() shape.Shape {
@@ -59,9 +67,15 @@ func (actions editorActions) getSelectedShape() shape.Shape {
 	}
 }
 
-func newQActionWithIcon(name string, iconPath string) *widgets.QAction {
+func newCheckableQActionWithIcon(name string, iconPath string) *widgets.QAction {
 	action := widgets.NewQAction2(name, nil)
 	action.SetCheckable(true)
+	action.SetIcon(gui.NewQIcon5(iconPath))
+	return action
+}
+
+func newQActionWithIcon(name string, iconPath string) *widgets.QAction {
+	action := widgets.NewQAction2(name, nil)
 	action.SetIcon(gui.NewQIcon5(iconPath))
 	return action
 }
@@ -75,6 +89,8 @@ func buildEditorToolbar(actions editorActions) *widgets.QToolBar {
 		actions.cursor,
 		actions.newRect,
 		actions.newTrapez,
+		actions.save,
+		actions.open,
 	})
 
 	return bar

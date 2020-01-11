@@ -105,7 +105,7 @@ func main() {
 		AudioOffset: 0,
 	}
 
-	editor.New(project)
+	editor.New(project, ApplicationCallbacks)
 	logrus.Info("Editor created")
 
 	logrus.Info("Starting Application")
