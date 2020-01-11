@@ -1,7 +1,6 @@
 package editor
 
 import (
-	"fmt"
 	"image/color"
 	"runtime"
 
@@ -38,11 +37,12 @@ type stage struct {
 func newStage(editor *Editor, projectScene *project.Scene, duration float64) *stage {
 	scene := widgets.NewQGraphicsScene(nil)
 	scene.SetSceneRect2(0, 0, editorViewWidth, duration)
+	scene.SetBackgroundBrush(gui.NewQBrush3(gui.NewQColor3(14, 15, 16, 255), core.Qt__SolidPattern))
 
-	udpWriter, err := streamer.NewUDPWriter("192.168.178.35:20202")
+	/*udpWriter, err := streamer.NewUDPWriter("192.168.178.35:20202")
 	if err != nil {
 		fmt.Println(err)
-	}
+	}*/
 
 	s := stage{
 		QGraphicsView: widgets.NewQGraphicsView(nil),
@@ -51,7 +51,7 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 		editor:        editor,
 		duration:      duration,
 		scanner:       scanner.New(projectScene, 60),
-		streamer:      streamer.New(udpWriter),
+		streamer:      streamer.New(nil),
 	}
 
 	s.SetObjectName("mainEditorView")
@@ -95,7 +95,14 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 func (s *stage) createElements() {
 	s.scene.Clear()
 
-	s.scene.AddRect2(0, 0, editorViewWidth, s.duration, gui.NewQPen2(core.Qt__NoPen), gui.NewQBrush3(gui.NewQColor3(0, 0, 255, 20), core.Qt__SolidPattern))
+	s.scene.AddRect2(
+		0,
+		0,
+		editorViewWidth,
+		s.duration,
+		gui.NewQPen2(core.Qt__NoPen),
+		gui.NewQBrush3(gui.NewQColor3(32, 34, 37, 255), core.Qt__SolidPattern),
+	)
 
 	for i := range s.projectScene.Elements {
 		s.scene.AddItem(newElementGraphicsItem(s, &s.projectScene.Elements[i]))

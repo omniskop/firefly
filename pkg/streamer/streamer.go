@@ -21,6 +21,9 @@ func New(dst io.Writer) Streamer {
 }
 
 func (s Streamer) Stream(frame scanner.Frame) {
+	if s.destination == nil {
+		return
+	}
 	var data = make([]byte, 1+3*len(frame.Pixel))
 	data[0] = 0
 	for i, pixel := range frame.Pixel {
