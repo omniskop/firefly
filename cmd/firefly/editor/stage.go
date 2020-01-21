@@ -1,6 +1,7 @@
 package editor
 
 import (
+	"fmt"
 	"image/color"
 	"runtime"
 
@@ -32,6 +33,8 @@ type stage struct {
 	scanner     scanner.Scanner
 	needleFrame scanner.Frame
 	streamer    streamer.Streamer
+
+	nextNonUserScrollEvents uint
 }
 
 func newStage(editor *Editor, projectScene *project.Scene, duration float64) *stage {
@@ -41,7 +44,7 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 
 	/*udpWriter, err := streamer.NewUDPWriter("192.168.178.35:20202")
 	if err != nil {
-		fmt.Println(err)
+		logrus.Error(err)
 	}*/
 
 	s := stage{
@@ -63,7 +66,7 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 	s.SetViewportUpdateMode(widgets.QGraphicsView__FullViewportUpdate)
 	s.SetVerticalScrollBarPolicy(core.Qt__ScrollBarAlwaysOn)
 	s.SetHorizontalScrollBarPolicy(core.Qt__ScrollBarAlwaysOff)
-	s.FitInView(core.NewQRectF4(0, 0, editorViewWidth, 50), core.Qt__IgnoreAspectRatio)
+	s.FitInView(core.NewQRectF4(0, 0, editorViewWidth, 10), core.Qt__IgnoreAspectRatio)
 	s.updateScale()
 	s.SetResizeAnchor(widgets.QGraphicsView__AnchorUnderMouse)
 
@@ -78,11 +81,23 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 	s.ConnectEvent(s.event)
 	s.ConnectEventFilter(s.eventFilter)
 	s.ConnectDrawForeground(s.drawForeground)
-	scene.ConnectChanged(s.sceneChanged)
+	s.scene.ConnectChanged(s.sceneChanged)
 
 	s.ConnectScrollContentsBy(func(dx int, dy int) {
 		s.ScrollContentsByDefault(dx, dy)
 		s.updateNeedleFrame()
+
+		if s.nextNonUserScrollEvents == 0 {
+			// do not update the time of the editor because it probably was the editor itself who triggered
+			// the scroll event
+			s.editor.SetTime(s.time())
+		} else {
+			// TODO: this whole thing is an ugly hack and needs to be properly redone
+			if s.nextNonUserScrollEvents > 2 {
+				s.nextNonUserScrollEvents = 2
+			}
+			s.nextNonUserScrollEvents--
+		}
 	})
 
 	scene.ConnectMousePressEvent(s.sceneMousePressEvent)
@@ -143,12 +158,17 @@ func (s *stage) scaleScene(factor float64) {
 
 func (s *stage) updateScale() {
 	physicalZero := s.MapFromScene(core.NewQPointF())
+	physicalDuration := s.MapFromScene(core.NewQPointF3(s.duration, s.duration))
+	s.nextNonUserScrollEvents++
+
 	if verticalTimeAxis {
-		point := s.MapToScene(core.NewQPoint2(0, physicalZero.Y()-needlePosition))
-		s.scene.SetSceneRect2(0, point.Y(), editorViewWidth, s.duration)
+		needlePoint := s.MapToScene(core.NewQPoint2(0, physicalZero.Y()-needlePosition))
+		heightPoint := s.MapToScene(core.NewQPoint2(0, physicalDuration.Y()+s.Viewport().Size().Height()))
+		s.scene.SetSceneRect2(0, needlePoint.Y(), editorViewWidth, heightPoint.Y())
 	} else {
-		point := s.MapToScene(core.NewQPoint2(physicalZero.X()-needlePosition, 0))
-		s.scene.SetSceneRect2(point.Y(), 0, s.duration, editorViewWidth)
+		needlePoint := s.MapToScene(core.NewQPoint2(physicalZero.X()-needlePosition, 0))
+		heightPoint := s.MapToScene(core.NewQPoint2(physicalDuration.X()+s.Viewport().Size().Width(), 0))
+		s.scene.SetSceneRect2(needlePoint.Y(), 0, heightPoint.X(), editorViewWidth)
 	}
 }
 
@@ -171,7 +191,10 @@ func (s *stage) updateNeedleFrame() {
 }
 
 func (s *stage) scrollSceneToLogical(scenePoint *core.QPointF, viewportPoint *core.QPoint) {
+	// Inspired by the QGraphicsView.centerOn Method: https://github.com/qt/qtbase/tree/35a461d0261af4178e560df3e3c8fd6fd19bdeb5/src/widgets/graphicsview/qgraphicsview.cpp#L1915
+
 	viewPoint := s.Matrix().Map4(scenePoint)
+	s.nextNonUserScrollEvents++
 
 	if verticalTimeAxis {
 		s.VerticalScrollBar().SetValue(int(viewPoint.Y()) - viewportPoint.Y())
@@ -249,7 +272,6 @@ func (s *stage) sceneMouseMoveEvent(event *widgets.QGraphicsSceneMouseEvent) {
 		mousePosition := vpPoint(event.ScenePos())
 		s.creationElement.element.Shape.SetCreationBounds(s.creationStart, mousePosition.Sub(s.creationStart))
 		s.creationElement.updatePath()
-		logrus.WithFields(logrus.Fields{"origin": s.creationStart, "size": mousePosition.Sub(s.creationStart)}).Debug("creation bounds update")
 	}
 
 	event.Ignore()

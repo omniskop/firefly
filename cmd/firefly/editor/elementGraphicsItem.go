@@ -48,14 +48,20 @@ func newElementGraphicsItem(parentStage *stage, element *project.Element) *eleme
 
 func (item *elementGraphicsItem) updatePath() {
 	item.ignoreNextPositionChange = true
+	item.PrepareGeometryChange()
 	item.SetPos(qtPoint(item.element.Shape.Origin()))
 	item.SetPath(pathFromElement(item.element))
 	item.updateHandles(-1)
 }
 
-// updatePattern sets the brush of the element
+// updatePattern sets the brush of the element and updates the gradient ui if necessary
 func (item *elementGraphicsItem) updatePattern() {
 	item.SetBrush(NewQBrushFromPattern(item.element.Pattern)) // TODO: modify brush instead of replacing it
+	if item.gradientItem != nil {
+		if linearGradient, ok := item.element.Pattern.(*project.LinearGradient); ok {
+			item.gradientItem.updateGradient(linearGradient)
+		}
+	}
 }
 
 func (item *elementGraphicsItem) updateHandles(except int) {
@@ -137,6 +143,10 @@ func (item *elementGraphicsItem) deselectElement() {
 	}
 
 	item.SetPen(noPen)
+
+	// TODO: handle this through a callback in the stage
+	// TODO: create clear rules which methods should be called for controlling the selection of elements
+	item.parent.selection = nil
 }
 
 func pathFromElement(element *project.Element) *gui.QPainterPath {

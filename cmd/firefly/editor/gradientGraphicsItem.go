@@ -59,12 +59,19 @@ func newGradientGraphicsItem(parent *elementGraphicsItem, gradient *project.Line
 }
 
 func (item *gradientGraphicsItem) updateShape(except int) {
+	// TODO: change line instead of replacing it
 	item.QGraphicsLineItem.SetLine(core.NewQLineF2(
 		qtPoint(item.parent.element.MapLocalToRelative(item.gradient.Start.Point)),
 		qtPoint(item.parent.element.MapLocalToRelative(item.gradient.Stop.Point)),
 	))
 	item.start.update(item.parent.element.MapLocalToRelative(item.gradient.Start.Point), item.gradient.Start.Color, -1)
 	item.stop.update(item.parent.element.MapLocalToRelative(item.gradient.Stop.Point), item.gradient.Stop.Color, -2)
+}
+
+func (item *gradientGraphicsItem) updateGradient(gradient *project.LinearGradient) {
+	item.gradient = gradient
+	item.start.update(item.parent.element.MapLocalToRelative(item.gradient.Start.Point), gradient.Start.Color, -1)
+	item.stop.update(item.parent.element.MapLocalToRelative(item.gradient.Stop.Point), gradient.Stop.Color, -2)
 }
 
 func (item *gradientGraphicsItem) mousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
@@ -144,7 +151,9 @@ func (item *colorDotItem) update(pos vectorpath.Point, col color.Color, index in
 		item.ignoreNextPositionChange = true
 		item.SetPos(newPos)
 	}
-	item.Brush().SetColor(NewQColorFromColor(col))
+	brush := item.Brush()
+	brush.SetColor(NewQColorFromColor(col))
+	item.SetBrush(brush)
 	item.index = index
 }
 
