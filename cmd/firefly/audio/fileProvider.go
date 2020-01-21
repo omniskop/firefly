@@ -110,9 +110,10 @@ type FilePlayer struct {
 
 func NewFilePlayer(mediapath string) *FilePlayer {
 	player := FilePlayer{
-		QMediaPlayer: multimedia.NewQMediaPlayer(nil, 0),
+		QMediaPlayer: multimedia.NewQMediaPlayer(nil, multimedia.QMediaPlayer__LowLatency),
 	}
 
+	player.SetNotifyInterval(16)
 	player.ConnectMediaStatusChanged(player.MediaStatusChangedEvent)
 	player.ConnectError2(player.ErrorEvent)
 
@@ -131,6 +132,7 @@ func (p *FilePlayer) Play() {
 
 func (p *FilePlayer) Pause() {
 	p.QMediaPlayer.Pause()
+	p.QMediaPlayer.SetPosition(p.QMediaPlayer.Position())
 }
 
 func (p *FilePlayer) Time() float64 {

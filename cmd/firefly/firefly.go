@@ -17,7 +17,7 @@ import (
 var app *widgets.QApplication
 
 func init() {
-	// not shure if this is realy needed
+	// not sure if this is really needed
 	runtime.LockOSThread()
 }
 
@@ -34,7 +34,7 @@ func main() {
 		Author:         "omniskop",
 		Tags:           []string{"hot", "awesome"},
 		AdditionalInfo: map[string]string{"demo": "true"},
-		Duration:       300, // 5 Minutes
+		Duration:       347,
 		Scene: project.Scene{
 			Elements: []project.Element{
 				project.Element{

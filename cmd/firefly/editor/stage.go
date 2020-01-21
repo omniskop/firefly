@@ -156,6 +156,9 @@ func (s *stage) removeElement(item *elementGraphicsItem) {
 }
 
 func (s *stage) scaleScene(factor float64) {
+	if factor < 0 {
+		return // this could sometimes happen and would result in the scene becoming flipped
+	}
 	if verticalTimeAxis {
 		s.Scale(1, factor)
 	} else {
