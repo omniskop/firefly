@@ -1,6 +1,11 @@
 package editor
 
 import (
+	"os"
+	"path"
+	"path/filepath"
+	"runtime"
+
 	"github.com/omniskop/firefly/pkg/project/shape"
 	"github.com/sirupsen/logrus"
 	"github.com/therecipe/qt/core"
@@ -87,20 +92,30 @@ func (actions editorActions) getSelectedShape() shape.Shape {
 func newCheckableQActionWithIcon(name string, iconPath string) *widgets.QAction {
 	action := widgets.NewQAction2(name, nil)
 	action.SetCheckable(true)
-	action.SetIcon(gui.NewQIcon5(iconPath))
+	action.SetIcon(gui.NewQIcon5(path.Join(getPathPrefix(), iconPath)))
 	return action
 }
 
 func newQActionWithIcon(name string, iconPath string) *widgets.QAction {
 	action := widgets.NewQAction2(name, nil)
-	action.SetIcon(gui.NewQIcon5(iconPath))
+	action.SetIcon(gui.NewQIcon5(path.Join(getPathPrefix(), iconPath)))
 	return action
+}
+
+func getPathPrefix() string {
+	if runtime.GOOS == "darwin" {
+		name, _ := os.Executable()
+		return filepath.Dir(name) + "/../.."
+	}
+	return ""
 }
 
 func buildEditorToolbar(actions editorActions) *widgets.QToolBar {
 	bar := widgets.NewQToolBar2(nil)
 	bar.SetMovable(false)
-	bar.SetIconSize(core.NewQSize2(25, 25))
+	if runtime.GOOS == "darwin" {
+		bar.SetIconSize(core.NewQSize2(25, 25))
+	}
 
 	bar.AddActions([]*widgets.QAction{
 		actions.cursor,

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/therecipe/qt/core"
@@ -18,13 +19,18 @@ func init() {
 	Register(new(fileProvider))
 }
 
+func getPathPrefix() string {
+	if runtime.GOOS == "darwin" {
+		name, _ := os.Executable()
+		return filepath.Dir(name) + "/../.."
+	}
+	return ""
+}
+
 type fileProvider struct{}
 
 func (p *fileProvider) CanProvide(audio project.Audio) bool {
-	currentFolder, err := os.Getwd()
-	if err != nil {
-		currentFolder = "/"
-	}
+	currentFolder := getPathPrefix()
 	files, errs := GetAllFiles([]string{path.Join(currentFolder, "assets/audio")})
 	for _, err := range errs {
 		logrus.Error("[Audio][FileProvider] ", err)
@@ -43,10 +49,7 @@ func (p *fileProvider) CanProvide(audio project.Audio) bool {
 }
 
 func (p *fileProvider) Provide(audio project.Audio) (Player, bool) {
-	currentFolder, err := os.Getwd()
-	if err != nil {
-		currentFolder = "/"
-	}
+	currentFolder := getPathPrefix()
 	files, errs := GetAllFiles([]string{path.Join(currentFolder, "assets/audio")})
 	for _, err := range errs {
 		logrus.Error("[Audio][FileProvider] ", err)
