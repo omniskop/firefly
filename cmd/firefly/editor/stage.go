@@ -119,6 +119,16 @@ func (s *stage) createElements() {
 		gui.NewQBrush3(gui.NewQColor3(32, 34, 37, 255), core.Qt__SolidPattern),
 	)
 
+	titleContainer := s.scene.AddRect2(0, 0, 100, -30, noPen, gui.NewQBrush3(gui.NewQColor(), core.Qt__NoBrush))
+	titleContainer.SetFlags(widgets.QGraphicsItem__ItemIgnoresTransformations)
+	songTitle := widgets.NewQGraphicsSimpleTextItem2(fmt.Sprintf("%s - %s", s.editor.project.Audio.Title, s.editor.project.Audio.Author), titleContainer)
+	font := gui.NewQFont2("fat_sans_serif", 25, int(gui.QFont__Bold), false)
+	font.InsertSubstitutions("fat_sans_serif", []string{"Montserrat", "Futura", "Arial"})
+	songTitle.SetFont(font)
+	songTitle.SetFlags(widgets.QGraphicsItem__ItemIgnoresTransformations)
+	songTitle.SetBrush(gui.NewQBrush3(gui.NewQColor3(201, 201, 201, 255), core.Qt__SolidPattern))
+	songTitle.SetPos2(5, -35)
+
 	for i := range s.projectScene.Elements {
 		s.scene.AddItem(newElementGraphicsItem(s, &s.projectScene.Elements[i]))
 	}
