@@ -192,6 +192,7 @@ func (s *stage) elementSelected(item *elementGraphicsItem) {
 			s.selection.deselectElement()
 		}
 		s.selection = item
+		s.editor.elementSelected(item)
 		logrus.WithField("item", item).Trace("editor selection changed")
 	}
 }
@@ -205,7 +206,7 @@ func (s *stage) sceneMousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
 	// only be required to find the clicked item once but that was more complicated than I thought because
 	// it doesn't seems possible to use the grabMouse mechanism of qt and I would also need to reimplement that.
 
-	if s.editor.userActions.group.CheckedAction().Pointer() != s.editor.userActions.cursor.Pointer() {
+	if s.editor.userActions.toolGroup.CheckedAction().Pointer() != s.editor.userActions.cursor.Pointer() {
 		s.creationElement = newElementGraphicsItem(s, &project.Element{
 			ZIndex:  0,
 			Shape:   s.editor.userActions.getSelectedShape(),
@@ -280,7 +281,7 @@ func (s *stage) wheelEvent(event *gui.QWheelEvent) {
 
 	event.Ignore() // TODO: is this necessary?
 	s.WheelEventDefault(event)
-	s.editor.SetTime(s.time())
+	s.editor.SetTime(s.time()) // TODO: could probably be removed because it is also calles in ConnectScrollContentsBy
 }
 
 func (s *stage) event(event *core.QEvent) bool {

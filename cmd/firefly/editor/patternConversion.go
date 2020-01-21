@@ -17,6 +17,16 @@ func NewQColorFromColor(col color.Color) *gui.QColor {
 	return gui.NewQColor3(int(r/257), int(g/257), int(b/257), int(a/257))
 }
 
+func NewColorFromQColor(qColor *gui.QColor) color.Color {
+	// TODO: check if qColor.GetRgb() would work
+	return color.RGBA{
+		R: uint8(qColor.Red()),
+		G: uint8(qColor.Green()),
+		B: uint8(qColor.Blue()),
+		A: uint8(qColor.Alpha()),
+	}
+}
+
 func NewQLinearGradientFromLinearGradient(grad *project.LinearGradient) *gui.QLinearGradient {
 	// we can't use qtPoint for the conversion here because these are not scene coordinates
 	var qgradient *gui.QLinearGradient

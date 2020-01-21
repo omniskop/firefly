@@ -122,6 +122,21 @@ type LinearGradient struct {
 	Steps []GradientColorStep // the steps between the anchor points
 }
 
+// NewLinearGradient creates a new LinearGradient with the given start and stop colors
+func NewLinearGradient(a color.Color, b color.Color) *LinearGradient {
+	return &LinearGradient{
+		Start: GradientAnchorPoint{
+			Color: a,
+			Point: vectorpath.Point{P: 0.5, T: 0},
+		},
+		Stop: GradientAnchorPoint{
+			Color: b,
+			Point: vectorpath.Point{P: 0.5, T: 1},
+		},
+		Steps: nil,
+	}
+}
+
 // Pattern implements the Pattern interface
 func (g *LinearGradient) Pattern() Pattern {
 	return g

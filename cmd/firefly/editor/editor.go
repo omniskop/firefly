@@ -1,7 +1,7 @@
 package editor
 
 import (
-	"fmt"
+	"image/color"
 
 	"github.com/omniskop/firefly/pkg/storage"
 
@@ -13,7 +13,7 @@ import (
 	"github.com/therecipe/qt/widgets"
 )
 
-const editorViewWidth = 1000
+const editorViewWidth = 1
 const verticalTimeAxis = true
 
 var noPen = gui.NewQPen2(core.Qt__NoPen)
@@ -76,7 +76,7 @@ func New(proj *project.Project, applicationCallbacks map[string]func()) *Editor 
 func (e *Editor) UpdateTick() {
 	if e.playing {
 		audioTime := e.player.Time()
-		fmt.Println("audio time: ", audioTime)
+		// fmt.Println("audio time: ", audioTime)
 		e.stage.setTime(audioTime)
 	}
 }
@@ -96,12 +96,109 @@ func (e *Editor) SetTime(t float64) {
 	//e.stage.setTime(t)
 }
 
+// elementSelected will be called by the stage to notify the editor about an element getting selected
+func (e *Editor) elementSelected(item *elementGraphicsItem) {
+	// update pattern toolbar
+	switch e.stage.selection.element.Pattern.(type) {
+	case *project.SolidColor:
+		e.userActions.solidColor.SetChecked(true)
+		e.userActions.colorB.SetDisabled(true)
+	case *project.LinearGradient:
+		e.userActions.linearGradient.SetChecked(true)
+		e.userActions.colorB.SetDisabled(false)
+	}
+}
+
 func (e *Editor) ToolbarElementAction(checked bool) {
-	if e.userActions.group.CheckedAction().Pointer() == e.userActions.cursor.Pointer() {
+	if e.userActions.toolGroup.CheckedAction().Pointer() == e.userActions.cursor.Pointer() {
 		e.stage.SetCursor(gui.NewQCursor2(core.Qt__ArrowCursor))
 	} else {
 		e.stage.SetCursor(gui.NewQCursor2(core.Qt__CrossCursor))
 	}
+}
+
+func (e *Editor) ToolbarPatternAction(action *widgets.QAction) {
+	if e.stage.selection == nil {
+		return
+	}
+	var col color.Color
+	var elementIsSolidColor bool
+	switch p := e.stage.selection.element.Pattern.(type) {
+	case *project.SolidColor:
+		col = p.Color
+		elementIsSolidColor = true
+	case *project.LinearGradient:
+		col = p.Start.Color
+	}
+
+	// we only update the pattern when it has changed to prevent endless loops of element updates
+
+	if action.Pointer() == e.userActions.solidColor.Pointer() {
+		if elementIsSolidColor {
+			return
+		}
+		e.stage.selection.element.Pattern = project.NewSolidColor(col)
+	} else {
+		if !elementIsSolidColor {
+			return
+		}
+		e.stage.selection.element.Pattern = project.NewLinearGradient(col, col)
+	}
+	// TODO: rewrite
+	selection := e.stage.selection
+	selection.deselectElement()
+	selection.selectElement()
+	e.stage.selection.updatePattern()
+}
+
+func (e *Editor) ToolbarColorAAction(bool) {
+	// TODO: rewrite
+	var col color.Color
+	switch p := e.stage.selection.element.Pattern.(type) {
+	case *project.SolidColor:
+		col = p.Color
+	case *project.LinearGradient:
+		col = p.Start.Color
+	}
+
+	qcolor := widgets.QColorDialog_GetColor(NewQColorFromColor(col), e.window, "Choose Color", 0)
+	if !qcolor.IsValid() { // user canceled dialog
+		return
+	}
+	col = NewColorFromQColor(qcolor)
+
+	switch p := e.stage.selection.element.Pattern.(type) {
+	case *project.SolidColor:
+		p.Color = col
+	case *project.LinearGradient:
+		p.Start.Color = col
+	}
+	e.stage.selection.updatePattern()
+}
+
+func (e *Editor) ToolbarColorBAction(bool) {
+	// TODO: rewrite
+	var col color.Color
+	switch p := e.stage.selection.element.Pattern.(type) {
+	case *project.SolidColor:
+		col = p.Color
+	case *project.LinearGradient:
+		col = p.Stop.Color
+	}
+
+	qcolor := widgets.QColorDialog_GetColor(NewQColorFromColor(col), e.window, "Choose Color", 0)
+	if !qcolor.IsValid() { // user canceled dialog
+		return
+	}
+	col = NewColorFromQColor(qcolor)
+
+	switch p := e.stage.selection.element.Pattern.(type) {
+	case *project.SolidColor:
+		p.Color = col
+	case *project.LinearGradient:
+		p.Stop.Color = col
+	}
+	e.stage.selection.updatePattern()
 }
 
 func (e *Editor) Save(bool) {
@@ -132,17 +229,25 @@ func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
 		if e.stage.selection != nil {
 			e.stage.removeElement(e.stage.selection)
 		}
-	case core.Qt__Key_S:
-		err := storage.SaveFile("../project_save.json", e.project)
-		if err != nil {
-			fmt.Printf("unable to save: %v\n", err)
-		} else {
-			fmt.Println("file saved!")
-		}
+	/*case core.Qt__Key_S:
+	err := storage.SaveFile("../project_save.json", e.project)
+	if err != nil {
+		logrus.Errorf("unable to save: %v\n", err)
+	} else {
+		logrus.Info("file saved!")
+	}
+	*/
 	case core.Qt__Key_9:
 		t := e.stage.time()
-		logrus.Debug("time is ", t)
+		logrus.Debug("time is ", t, " ", e.player.Time())
 		e.stage.setTime(t)
+	case core.Qt__Key_8:
+		player := e.player.(*audio.FilePlayer)
+		if player.PlaybackRate() == 0.5 {
+			player.SetPlaybackRate(1)
+		} else {
+			player.SetPlaybackRate(0.5)
+		}
 	}
 }
 

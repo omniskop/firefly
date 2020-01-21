@@ -12,9 +12,16 @@ type editorActions struct {
 	cursor    *widgets.QAction
 	newRect   *widgets.QAction
 	newTrapez *widgets.QAction
-	group     *widgets.QActionGroup
-	save      *widgets.QAction
-	open      *widgets.QAction
+	toolGroup *widgets.QActionGroup
+
+	save *widgets.QAction
+	open *widgets.QAction
+
+	solidColor     *widgets.QAction
+	linearGradient *widgets.QAction
+	patternGroup   *widgets.QActionGroup
+	colorA         *widgets.QAction
+	colorB         *widgets.QAction
 }
 
 func newEditorActions() editorActions {
@@ -24,23 +31,30 @@ func newEditorActions() editorActions {
 	actions.cursor.SetShortcut(gui.NewQKeySequence3(int(core.Qt__Key_V), 0, 0, 0))
 	actions.cursor.SetChecked(true)
 
-	actions.newRect = widgets.NewQAction2("Create Rectangle", nil)
-	actions.newRect.SetIcon(gui.NewQIcon5("assets/images/toolbar new rect.imageset/toolbar new rect.png"))
+	actions.newRect = newCheckableQActionWithIcon("Create Rectangle", "assets/images/toolbar new rect.imageset/toolbar new rect.png")
+	actions.newTrapez = newCheckableQActionWithIcon("Create Trapezoid", "assets/images/toolbar new trapez.imageset/toolbar new trapez.png")
 
-	actions.newTrapez = widgets.NewQAction2("Create Trapezoid", nil)
-	actions.newTrapez.SetIcon(gui.NewQIcon5("assets/images/toolbar new trapez.imageset/toolbar new trapez.png"))
-
-	actions.group = widgets.NewQActionGroup(nil)
-	//TODO: when qt is updated to >= 5.14 set the ExclusionPolicy of the group to QActionGroup::ExclusiveOptional
-	actions.group.AddAction(actions.cursor)
-	actions.group.AddAction(actions.newRect)
-	actions.group.AddAction(actions.newTrapez)
+	actions.toolGroup = widgets.NewQActionGroup(nil)
+	//TODO: when qt is updated to >= 5.14 set the ExclusionPolicy of the toolGroup to QActionGroup::ExclusiveOptional
+	actions.toolGroup.AddAction(actions.cursor)
+	actions.toolGroup.AddAction(actions.newRect)
+	actions.toolGroup.AddAction(actions.newTrapez)
 
 	actions.save = newQActionWithIcon("Save", "assets/images/toolbar save.imageset/toolbar save.png")
 	actions.save.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Save))
 
 	actions.open = newQActionWithIcon("Save", "assets/images/toolbar open.imageset/toolbar open.png")
 	actions.open.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Open))
+
+	actions.solidColor = newCheckableQActionWithIcon("Solid Color", "assets/images/toolbar solid color.imageset/toolbar solid color.png")
+	actions.solidColor.SetChecked(true)
+	actions.linearGradient = newCheckableQActionWithIcon("Linear Gradient", "assets/images/toolbar linear gradient.imageset/toolbar linear gradient.png")
+	actions.patternGroup = widgets.NewQActionGroup(nil)
+	actions.patternGroup.AddAction(actions.solidColor)
+	actions.patternGroup.AddAction(actions.linearGradient)
+	actions.colorA = newQActionWithIcon("Choose Color", "assets/images/toolbar colorpicker.imageset/toolbar colorpicker.png")
+	actions.colorB = newQActionWithIcon("Choose Second Color", "assets/images/toolbar colorpicker.imageset/toolbar colorpicker.png")
+	actions.colorB.SetDisabled(true)
 
 	return actions
 }
@@ -51,17 +65,20 @@ func (actions editorActions) connectToEditor(e *Editor) {
 	e.userActions.newTrapez.ConnectTriggered(e.ToolbarElementAction)
 	e.userActions.save.ConnectTriggered(e.Save)
 	e.userActions.open.ConnectTriggered(e.Open)
+	e.userActions.patternGroup.ConnectTriggered(e.ToolbarPatternAction)
+	e.userActions.colorA.ConnectTriggered(e.ToolbarColorAAction)
+	e.userActions.colorB.ConnectTriggered(e.ToolbarColorBAction)
 }
 
 func (actions editorActions) getSelectedShape() shape.Shape {
-	switch actions.group.CheckedAction().Pointer() {
+	switch actions.toolGroup.CheckedAction().Pointer() {
 	case actions.newRect.Pointer():
 		return shape.NewEmptyOrthogonalRectangle()
 	case actions.newTrapez.Pointer():
 		return shape.NewEmptyBentTrapezoid()
 	default:
 		logrus.Error("a toolbar action is selected that has no known shape that can be created in the stage")
-		logrus.Error("the pointer to the action is: ", actions.group.CheckedAction().Pointer())
+		logrus.Error("the pointer to the action is: ", actions.toolGroup.CheckedAction().Pointer())
 		logrus.Errorf("all known action pointers are: \n%v", actions)
 		return nil
 	}
@@ -89,8 +106,18 @@ func buildEditorToolbar(actions editorActions) *widgets.QToolBar {
 		actions.cursor,
 		actions.newRect,
 		actions.newTrapez,
+	})
+	bar.AddSeparator()
+	bar.AddActions([]*widgets.QAction{
 		actions.save,
 		actions.open,
+	})
+	bar.AddSeparator()
+	bar.AddActions([]*widgets.QAction{
+		actions.solidColor,
+		actions.linearGradient,
+		actions.colorA,
+		actions.colorB,
 	})
 
 	return bar
