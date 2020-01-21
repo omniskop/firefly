@@ -48,11 +48,12 @@ func newGradientGraphicsItem(parent *elementGraphicsItem, gradient *project.Line
 
 	item.SetPen(gradientLinePen)
 
-	shadow := widgets.NewQGraphicsDropShadowEffect(nil)
+	// enabling this shadow has a significant performance impact on objects that take ob a lot of screen space
+	/*shadow := widgets.NewQGraphicsDropShadowEffect(nil)
 	shadow.SetColor(gui.NewQColor3(0, 0, 0, 165))
 	shadow.SetBlurRadius(6)
 	shadow.SetOffset2(0, 1)
-	item.SetGraphicsEffect(shadow)
+	item.SetGraphicsEffect(shadow)*/
 
 	return &item
 }
