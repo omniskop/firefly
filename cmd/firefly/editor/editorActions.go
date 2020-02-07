@@ -31,8 +31,8 @@ type editorActions struct {
 	colorB         *widgets.QAction
 }
 
-func newEditorActions() editorActions {
-	actions := editorActions{}
+func newEditorActions() *editorActions {
+	var actions = new(editorActions)
 
 	actions.cursor = newCheckableQActionWithIcon("Move", "assets/images/toolbar cursor.imageset/toolbar cursor.png")
 	actions.cursor.SetShortcut(gui.NewQKeySequence3(int(core.Qt__Key_V), 0, 0, 0))
@@ -47,10 +47,10 @@ func newEditorActions() editorActions {
 	actions.toolGroup.AddAction(actions.newRect)
 	actions.toolGroup.AddAction(actions.newTrapez)
 
-	actions.save = newQActionWithIcon("Save", "assets/images/toolbar save.imageset/toolbar save.png")
+	actions.save = newQActionWithIcon("Save...", "assets/images/toolbar save.imageset/toolbar save.png")
 	actions.save.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Save))
 
-	actions.open = newQActionWithIcon("Open", "assets/images/toolbar open.imageset/toolbar open.png")
+	actions.open = newQActionWithIcon("Open...", "assets/images/toolbar open.imageset/toolbar open.png")
 	actions.open.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Open))
 
 	actions.copy = widgets.NewQAction2("Copy", nil)
@@ -71,7 +71,7 @@ func newEditorActions() editorActions {
 	return actions
 }
 
-func (actions editorActions) connectToEditor(e *Editor) {
+func (actions *editorActions) connectToEditor(e *Editor) {
 	e.userActions.cursor.ConnectTriggered(e.ToolbarElementAction)
 	e.userActions.newRect.ConnectTriggered(e.ToolbarElementAction)
 	e.userActions.newTrapez.ConnectTriggered(e.ToolbarElementAction)
@@ -84,7 +84,7 @@ func (actions editorActions) connectToEditor(e *Editor) {
 	e.userActions.colorB.ConnectTriggered(e.ToolbarColorBAction)
 }
 
-func (actions editorActions) getSelectedShape() shape.Shape {
+func (actions *editorActions) getSelectedShape() shape.Shape {
 	switch actions.toolGroup.CheckedAction().Pointer() {
 	case actions.newRect.Pointer():
 		return shape.NewEmptyOrthogonalRectangle()
@@ -96,6 +96,55 @@ func (actions editorActions) getSelectedShape() shape.Shape {
 		logrus.Errorf("all known action pointers are: \n%v", actions)
 		return nil
 	}
+}
+
+func (actions *editorActions) buildToolbar() *widgets.QToolBar {
+	bar := widgets.NewQToolBar2(nil)
+	bar.SetMovable(false)
+	if runtime.GOOS == "darwin" {
+		bar.SetIconSize(core.NewQSize2(25, 25))
+	}
+
+	bar.AddActions([]*widgets.QAction{
+		actions.cursor,
+		actions.newRect,
+		actions.newTrapez,
+	})
+	bar.AddSeparator()
+	bar.AddActions([]*widgets.QAction{
+		actions.save,
+		actions.open,
+	})
+	bar.AddSeparator()
+	bar.AddActions([]*widgets.QAction{
+		actions.solidColor,
+		actions.linearGradient,
+		actions.colorA,
+		actions.colorB,
+	})
+
+	return bar
+}
+
+func (actions *editorActions) buildMenuBar() *widgets.QMenuBar {
+	menubar := widgets.NewQMenuBar(nil)
+
+	fileMenu := menubar.AddMenu2("File")
+	fileMenu.AddActions([]*widgets.QAction{
+		actions.open,
+	})
+	fileMenu.AddSeparator()
+	fileMenu.AddActions([]*widgets.QAction{
+		actions.save,
+	})
+
+	editMenu := menubar.AddMenu2("Edit")
+	editMenu.AddActions([]*widgets.QAction{
+		actions.copy,
+		actions.paste,
+	})
+
+	return menubar
 }
 
 func newCheckableQActionWithIcon(name string, iconPath string) *widgets.QAction {
@@ -114,37 +163,8 @@ func newQActionWithIcon(name string, iconPath string) *widgets.QAction {
 func getPathPrefix() string {
 	if runtime.GOOS == "darwin" {
 		name, _ := os.Executable()
-		return filepath.Dir(name) + "/../.."
+		return filepath.Dir(name)
+		//return filepath.Dir(name) + "/../.."
 	}
 	return ""
-}
-
-func buildEditorToolbar(actions editorActions) *widgets.QToolBar {
-	bar := widgets.NewQToolBar2(nil)
-	bar.SetMovable(false)
-	if runtime.GOOS == "darwin" {
-		bar.SetIconSize(core.NewQSize2(25, 25))
-	}
-
-	bar.AddActions([]*widgets.QAction{
-		actions.cursor,
-		actions.newRect,
-		actions.newTrapez,
-	})
-	bar.AddSeparator()
-	bar.AddActions([]*widgets.QAction{
-		actions.save,
-		actions.open,
-		actions.copy,
-		actions.paste,
-	})
-	bar.AddSeparator()
-	bar.AddActions([]*widgets.QAction{
-		actions.solidColor,
-		actions.linearGradient,
-		actions.colorA,
-		actions.colorB,
-	})
-
-	return bar
 }

@@ -26,7 +26,7 @@ type Editor struct {
 	player               audio.Player
 	playing              bool
 	updateTimer          *core.QTimer
-	userActions          editorActions
+	userActions          *editorActions
 
 	clipboard *project.Element
 }
@@ -58,7 +58,8 @@ func New(proj *project.Project, applicationCallbacks map[string]func()) *Editor 
 	edit.userActions.connectToEditor(edit)
 	edit.stage = newStage(edit, &proj.Scene, proj.Duration)
 	window.SetCentralWidget(edit.stage)
-	window.AddToolBar(core.Qt__TopToolBarArea, buildEditorToolbar(edit.userActions))
+	window.AddToolBar(core.Qt__TopToolBarArea, edit.userActions.buildToolbar())
+	window.SetMenuBar(edit.userActions.buildMenuBar())
 
 	window.ConnectKeyPressEvent(edit.KeyPressEvent)
 	window.ConnectKeyReleaseEvent(edit.KeyReleaseEvent)
