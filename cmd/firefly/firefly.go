@@ -36,8 +36,8 @@ func main() {
 		AdditionalInfo: map[string]string{"demo": "true"},
 		Duration:       347,
 		Scene: project.Scene{
-			Elements: []project.Element{
-				project.Element{
+			Elements: []*project.Element{
+				&project.Element{
 					ZIndex: 0,
 					Shape:  shape.NewOrthogonalRectangle(vectorpath.Point{0, 0}, 0.5, 5),
 					Pattern: &project.LinearGradient{
@@ -52,17 +52,17 @@ func main() {
 						Steps: nil,
 					},
 				},
-				project.Element{
+				&project.Element{
 					ZIndex:  0,
 					Shape:   shape.NewOrthogonalRectangle(vectorpath.Point{0.5, 5}, 0.5, 5),
 					Pattern: project.NewSolidColorRGBA(255, 0, 0, 255),
 				},
-				project.Element{
+				&project.Element{
 					ZIndex:  0,
 					Shape:   shape.NewOrthogonalRectangle(vectorpath.Point{0, 10}, 0.5, 5),
 					Pattern: project.NewSolidColorRGBA(255, 0, 0, 255),
 				},
-				project.Element{
+				&project.Element{
 					ZIndex: 0,
 					Shape:  shape.NewBentTrapezoid(vectorpath.Point{0.6, 15}, vectorpath.Point{0.4, 20}, 0.3, 0.5),
 					Pattern: &project.LinearGradient{
@@ -77,7 +77,7 @@ func main() {
 						Steps: nil,
 					},
 				},
-				project.Element{
+				&project.Element{
 					ZIndex: 0,
 					Shape:  shape.NewBentTrapezoid(vectorpath.Point{0.5, 20}, vectorpath.Point{0.5, 25}, 0.5, 0.5),
 					Pattern: &project.LinearGradient{
@@ -93,7 +93,7 @@ func main() {
 					},
 				},
 			},
-			Effects: []project.Effect{},
+			Effects: []*project.Effect{},
 		},
 		Audio: project.Audio{
 			//Title:  "Zeitansage",

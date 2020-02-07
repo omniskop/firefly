@@ -130,13 +130,13 @@ func (s *stage) createElements() {
 	songTitle.SetPos2(5, -35)
 
 	for i := range s.projectScene.Elements {
-		s.scene.AddItem(newElementGraphicsItem(s, &s.projectScene.Elements[i]))
+		s.scene.AddItem(newElementGraphicsItem(s, s.projectScene.Elements[i]))
 	}
 }
 
 func (s *stage) addElement(element *project.Element) *elementGraphicsItem {
-	s.projectScene.Elements = append(s.projectScene.Elements, *element)
-	item := newElementGraphicsItem(s, &s.projectScene.Elements[len(s.projectScene.Elements)-1])
+	s.projectScene.Elements = append(s.projectScene.Elements, element)
+	item := newElementGraphicsItem(s, s.projectScene.Elements[len(s.projectScene.Elements)-1])
 	s.scene.AddItem(item)
 	return item
 }
@@ -146,15 +146,20 @@ func (s *stage) removeElement(item *elementGraphicsItem) {
 		s.selection = nil
 	}
 	if s.creationElement == item {
-		s.selection = nil
+		s.creationElement = nil
 	}
 	s.scene.RemoveItem(item)
 	for i := range s.projectScene.Elements {
-		if &s.projectScene.Elements[i] == item.element {
-			s.projectScene.Elements = append(s.projectScene.Elements[:i], s.projectScene.Elements[i+1:]...)
-			break
+		if s.projectScene.Elements[i] == item.element {
+			// this copies the last element of the slice over the removed one and shrinks the slice
+			lastIndex := len(s.projectScene.Elements) - 1
+			s.projectScene.Elements[i] = s.projectScene.Elements[lastIndex]
+			s.projectScene.Elements[lastIndex] = nil
+			s.projectScene.Elements = s.projectScene.Elements[:lastIndex]
+			return
 		}
 	}
+	logrus.Error("an element that should have been deleted could not be found in the scene")
 }
 
 func (s *stage) scaleScene(factor float64) {
@@ -231,7 +236,7 @@ func (s *stage) elementSelected(item *elementGraphicsItem) {
 		}
 		s.selection = item
 		s.editor.elementSelected(item)
-		logrus.WithField("item", item).Trace("editor selection changed")
+		logrus.WithField("time", item.element.Shape.Time()).Trace("editor selection changed")
 	}
 }
 
@@ -272,9 +277,9 @@ exit:
 
 func (s *stage) sceneMouseReleaseEvent(event *widgets.QGraphicsSceneMouseEvent) {
 	if s.creationElement != nil {
-		s.projectScene.Elements = append(s.projectScene.Elements, *s.creationElement.element)
+		s.projectScene.Elements = append(s.projectScene.Elements, s.creationElement.element)
 		// we do this to get the new correct reference to the element in the slice because element is copied
-		s.creationElement.element = &s.projectScene.Elements[len(s.projectScene.Elements)-1]
+		s.creationElement.element = s.projectScene.Elements[len(s.projectScene.Elements)-1]
 		s.creationElement = nil
 	}
 

@@ -145,7 +145,7 @@ func getSegmentEdge(segment vectorpath.Segment, time float64) float64 {
 }
 
 // getFill takes an element and a point inside it to return the correct color according to the pattern of the element.
-func getFill(element project.Element, point vectorpath.Point) color.Color {
+func getFill(element *project.Element, point vectorpath.Point) color.Color {
 	bounds := element.Shape.Bounds()
 	point = point.Sub(bounds.Location)
 	point = vectorpath.Point{
