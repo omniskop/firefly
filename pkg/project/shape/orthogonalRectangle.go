@@ -210,6 +210,10 @@ func (or *OrthogonalRectangle) SetCreationBounds(origin vectorpath.Point, size v
 	or.SetHandle(2, origin.Add(size))
 }
 
+func (or *OrthogonalRectangle) Copy() Shape {
+	return NewOrthogonalRectangle(or.Origin(), or.Width(), or.Duration())
+}
+
 func (or *OrthogonalRectangle) MarshalJSON() ([]byte, error) {
 	var values = map[string]interface{}{
 		"__TYPE__": "OrthogonalRectangle",

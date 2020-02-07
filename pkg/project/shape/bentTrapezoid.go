@@ -227,6 +227,11 @@ func (b *BentTrapezoid) SetCreationBounds(origin vectorpath.Point, size vectorpa
 	b.duration = size.T
 }
 
+func (b *BentTrapezoid) Copy() Shape {
+	k := *b
+	return &k
+}
+
 func (b *BentTrapezoid) MarshalJSON() ([]byte, error) {
 	var values = map[string]interface{}{
 		"__TYPE__": "BentTrapezoid",

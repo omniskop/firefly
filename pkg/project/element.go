@@ -42,6 +42,15 @@ func (e *Element) MapRelativeToLocal(relative vectorpath.Point) vectorpath.Point
 	}
 }
 
+// Copy returns a deep copy of the element
+func (e *Element) Copy() *Element {
+	return &Element{
+		ZIndex:  e.ZIndex,
+		Shape:   e.Shape.Copy(),
+		Pattern: e.Pattern.Copy(),
+	}
+}
+
 // UnmarshalJSON will take data and try to parse it into an Element.
 // It takes care of handling the Shape and Pattern interfaces with their respective Unmarshal functions.
 func (e *Element) UnmarshalJSON(data []byte) error {

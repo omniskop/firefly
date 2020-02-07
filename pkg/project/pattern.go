@@ -25,6 +25,7 @@ type Pattern interface {
 	json.Marshaler
 
 	Pattern() Pattern // this is just here to distinguish Pattern from an empty interface
+	Copy() Pattern
 }
 
 func UnmarshalPattern(raw []byte) (Pattern, error) {
@@ -68,6 +69,8 @@ type SolidColor struct {
 	color.Color
 }
 
+var _ Pattern = (*SolidColor)(nil) // make sure SolidColor implements the Pattern interface
+
 // NewSolidColor returns a new SolidColor Pattern with the specified color
 func NewSolidColor(c color.Color) *SolidColor {
 	return &SolidColor{
@@ -85,6 +88,11 @@ func NewSolidColorRGBA(r, g, b, a uint8) *SolidColor {
 // Pattern implements the Pattern interface
 func (c *SolidColor) Pattern() Pattern {
 	return c
+}
+
+func (c *SolidColor) Copy() Pattern {
+	r, g, b, a := c.RGBA()
+	return NewSolidColor(color.RGBA64{R: uint16(r), G: uint16(g), B: uint16(b), A: uint16(a)})
 }
 
 func (c *SolidColor) MarshalJSON() ([]byte, error) {
@@ -122,6 +130,8 @@ type LinearGradient struct {
 	Steps []GradientColorStep // the steps between the anchor points
 }
 
+var _ Pattern = (*LinearGradient)(nil) // make sure LinearGradient implements the Pattern interface
+
 // NewLinearGradient creates a new LinearGradient with the given start and stop colors
 func NewLinearGradient(a color.Color, b color.Color) *LinearGradient {
 	return &LinearGradient{
@@ -142,6 +152,14 @@ func (g *LinearGradient) Pattern() Pattern {
 	return g
 }
 
+func (g *LinearGradient) Copy() Pattern {
+	return &LinearGradient{
+		Start: g.Start.Copy(),
+		Stop:  g.Stop.Copy(),
+		Steps: nil,
+	}
+}
+
 func (g *LinearGradient) MarshalJSON() ([]byte, error) {
 	var values = map[string]interface{}{
 		"__TYPE__": "LinearGradient",
@@ -158,6 +176,14 @@ func (g *LinearGradient) MarshalJSON() ([]byte, error) {
 type GradientAnchorPoint struct {
 	color.Color
 	vectorpath.Point
+}
+
+func (p GradientAnchorPoint) Copy() GradientAnchorPoint {
+	r, g, b, a := p.Color.RGBA()
+	return GradientAnchorPoint{
+		Color: color.RGBA64{uint16(r), uint16(g), uint16(b), uint16(a)},
+		Point: p.Point,
+	}
 }
 
 func (p GradientAnchorPoint) MarshalJSON() ([]byte, error) {

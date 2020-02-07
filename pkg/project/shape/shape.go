@@ -23,6 +23,8 @@ type Shape interface {
 	Handles() []vectorpath.Point                          // returns all points where the user can manipulate the shape
 	SetHandle(int, vectorpath.Point)                      // set new position of a handle
 	SetCreationBounds(vectorpath.Point, vectorpath.Point) // sets the size of the shape in an intuitive way for the user
+
+	Copy() Shape // creates a deep copy of the shape
 }
 
 func Unmarshal(raw []byte) (Shape, error) {
