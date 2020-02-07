@@ -250,10 +250,14 @@ func (s *stage) sceneMousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
 	// it doesn't seems possible to use the grabMouse mechanism of qt and I would also need to reimplement that.
 
 	if s.editor.userActions.toolGroup.CheckedAction().Pointer() != s.editor.userActions.cursor.Pointer() {
+		var elementColor project.Pattern = project.NewSolidColorRGBA(255, 255, 255, 255)
+		if s.selection != nil {
+			elementColor = s.selection.element.Pattern
+		}
 		s.creationElement = newElementGraphicsItem(s, &project.Element{
 			ZIndex:  0,
 			Shape:   s.editor.userActions.getSelectedShape(),
-			Pattern: project.NewSolidColorRGBA(255, 0, 0, 255),
+			Pattern: elementColor,
 		})
 		s.scene.AddItem(s.creationElement)
 		s.creationStart = vpPoint(event.ScenePos())
