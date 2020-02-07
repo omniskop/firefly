@@ -27,6 +27,8 @@ type Editor struct {
 	playing              bool
 	updateTimer          *core.QTimer
 	userActions          editorActions
+
+	clipboard *project.Element
 }
 
 func New(proj *project.Project, applicationCallbacks map[string]func()) *Editor {
@@ -199,6 +201,27 @@ func (e *Editor) ToolbarColorBAction(bool) {
 		p.Stop.Color = col
 	}
 	e.stage.selection.updatePattern()
+}
+
+func (e *Editor) Copy(bool) {
+	if e.stage.selection == nil {
+		return
+	}
+	e.clipboard = e.stage.selection.element.Copy()
+	logrus.Info("copied element")
+}
+
+func (e *Editor) Paste(bool) {
+	if e.clipboard == nil {
+		return
+	}
+	element := e.clipboard.Copy()
+	origin := element.Shape.Origin()
+	origin.T = e.Time()
+	element.Shape.SetOrigin(origin)
+	item := e.stage.addElement(element)
+	item.selectElement()
+	logrus.Info("pasted element")
 }
 
 func (e *Editor) Save(bool) {

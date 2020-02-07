@@ -19,8 +19,10 @@ type editorActions struct {
 	newTrapez *widgets.QAction
 	toolGroup *widgets.QActionGroup
 
-	save *widgets.QAction
-	open *widgets.QAction
+	save  *widgets.QAction
+	open  *widgets.QAction
+	copy  *widgets.QAction
+	paste *widgets.QAction
 
 	solidColor     *widgets.QAction
 	linearGradient *widgets.QAction
@@ -48,8 +50,13 @@ func newEditorActions() editorActions {
 	actions.save = newQActionWithIcon("Save", "assets/images/toolbar save.imageset/toolbar save.png")
 	actions.save.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Save))
 
-	actions.open = newQActionWithIcon("Save", "assets/images/toolbar open.imageset/toolbar open.png")
+	actions.open = newQActionWithIcon("Open", "assets/images/toolbar open.imageset/toolbar open.png")
 	actions.open.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Open))
+
+	actions.copy = widgets.NewQAction2("Copy", nil)
+	actions.copy.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Copy))
+	actions.paste = widgets.NewQAction2("Paste", nil)
+	actions.paste.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Paste))
 
 	actions.solidColor = newCheckableQActionWithIcon("Solid Color", "assets/images/toolbar solid color.imageset/toolbar solid color.png")
 	actions.solidColor.SetChecked(true)
@@ -70,6 +77,8 @@ func (actions editorActions) connectToEditor(e *Editor) {
 	e.userActions.newTrapez.ConnectTriggered(e.ToolbarElementAction)
 	e.userActions.save.ConnectTriggered(e.Save)
 	e.userActions.open.ConnectTriggered(e.Open)
+	e.userActions.copy.ConnectTriggered(e.Copy)
+	e.userActions.paste.ConnectTriggered(e.Paste)
 	e.userActions.patternGroup.ConnectTriggered(e.ToolbarPatternAction)
 	e.userActions.colorA.ConnectTriggered(e.ToolbarColorAAction)
 	e.userActions.colorB.ConnectTriggered(e.ToolbarColorBAction)
@@ -126,6 +135,8 @@ func buildEditorToolbar(actions editorActions) *widgets.QToolBar {
 	bar.AddActions([]*widgets.QAction{
 		actions.save,
 		actions.open,
+		actions.copy,
+		actions.paste,
 	})
 	bar.AddSeparator()
 	bar.AddActions([]*widgets.QAction{

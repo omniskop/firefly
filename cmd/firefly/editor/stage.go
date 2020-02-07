@@ -134,9 +134,11 @@ func (s *stage) createElements() {
 	}
 }
 
-func (s *stage) addElement(element *project.Element) {
+func (s *stage) addElement(element *project.Element) *elementGraphicsItem {
 	s.projectScene.Elements = append(s.projectScene.Elements, *element)
-	s.scene.AddItem(newElementGraphicsItem(s, &s.projectScene.Elements[len(s.projectScene.Elements)-1]))
+	item := newElementGraphicsItem(s, &s.projectScene.Elements[len(s.projectScene.Elements)-1])
+	s.scene.AddItem(item)
+	return item
 }
 
 func (s *stage) removeElement(item *elementGraphicsItem) {
