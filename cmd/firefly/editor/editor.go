@@ -101,6 +101,9 @@ func (e *Editor) SetTime(t float64) {
 
 // elementSelected will be called by the stage to notify the editor about an element getting selected
 func (e *Editor) elementSelected(item *elementGraphicsItem) {
+	if item == nil {
+		return
+	}
 	// update pattern toolbar
 	switch e.stage.selection.element.Pattern.(type) {
 	case *project.SolidColor:

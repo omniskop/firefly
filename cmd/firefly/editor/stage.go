@@ -110,14 +110,21 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 func (s *stage) createElements() {
 	s.scene.Clear()
 
-	s.scene.AddRect2(
+	rect := widgets.NewQGraphicsRectItem3(
 		0,
 		0,
 		editorViewWidth,
 		s.duration,
-		gui.NewQPen2(core.Qt__NoPen),
-		gui.NewQBrush3(gui.NewQColor3(32, 34, 37, 255), core.Qt__SolidPattern),
+		nil,
 	)
+	rect.SetPen(gui.NewQPen2(core.Qt__NoPen))
+	rect.SetBrush(gui.NewQBrush3(gui.NewQColor3(32, 34, 37, 255), core.Qt__SolidPattern))
+	rect.ConnectMousePressEvent(func(event *widgets.QGraphicsSceneMouseEvent) {
+		if s.creationElement == nil {
+			s.elementSelected(nil)
+		}
+	})
+	s.scene.AddItem(rect)
 
 	titleContainer := s.scene.AddRect2(0, 0, 100, -30, noPen, gui.NewQBrush3(gui.NewQColor(), core.Qt__NoBrush))
 	titleContainer.SetFlags(widgets.QGraphicsItem__ItemIgnoresTransformations)
@@ -231,12 +238,13 @@ func (s *stage) elementSelected(item *elementGraphicsItem) {
 	logrus.Trace("editor element selected")
 	if s.selection != item {
 		if s.selection != nil {
-			logrus.Trace("editor called deselectElement")
+			logrus.Trace("element deselected")
 			s.selection.deselectElement()
+		} else {
+			logrus.WithField("time", item.element.Shape.Time()).Trace("editor selection changed")
 		}
 		s.selection = item
 		s.editor.elementSelected(item)
-		logrus.WithField("time", item.element.Shape.Time()).Trace("editor selection changed")
 	}
 }
 
