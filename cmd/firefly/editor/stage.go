@@ -35,6 +35,8 @@ type stage struct {
 	streamer    streamer.Streamer
 
 	nextNonUserScrollEvents uint
+
+	debugShowBounds bool
 }
 
 func newStage(editor *Editor, projectScene *project.Scene, duration float64) *stage {
@@ -388,6 +390,28 @@ func (s *stage) resizeEvent(event *gui.QResizeEvent) {
 }
 
 func (s *stage) drawForeground(painter *gui.QPainter, rect *core.QRectF) {
+	if s.debugShowBounds && s.selection != nil {
+		painter.SetPen(noPen)
+		painter.SetBrush(gui.NewQBrush3(gui.NewQColor3(0, 0, 255, 100), core.Qt__SolidPattern))
+		bounds := s.selection.BoundingRect()
+		bounds.Translate2(s.selection.Pos())
+		painter.DrawRect(bounds)
+
+		pen := gui.NewQPen4(
+			gui.NewQBrush3(gui.NewQColor3(0, 255, 255, 255), core.Qt__SolidPattern),
+			0,
+			core.Qt__SolidLine,
+			core.Qt__FlatCap,
+			core.Qt__BevelJoin,
+		)
+		pen.SetCosmetic(true)
+		painter.SetPen(pen)
+		painter.SetBrush(gui.NewQBrush3(gui.NewQColor3(0, 0, 0, 0), core.Qt__SolidPattern))
+
+		myBounds := s.selection.element.Shape.Bounds()
+		painter.DrawRect(core.NewQRectF4(myBounds.Location.P, myBounds.Location.T, myBounds.Dimensions.P, myBounds.Dimensions.T))
+	}
+
 	var needleStart *core.QPointF
 	var needleStop *core.QPointF
 	var gradientStart *core.QPointF
