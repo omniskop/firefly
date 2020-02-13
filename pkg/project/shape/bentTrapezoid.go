@@ -227,6 +227,20 @@ func (b *BentTrapezoid) SetCreationBounds(origin vectorpath.Point, size vectorpa
 	b.duration = size.T
 }
 
+func (b *BentTrapezoid) MirrorP() {
+	newBottomOffset := b.topWidth - (b.bottomOffset + b.bottomWidth)
+	if b.bottomOffset > 0 {
+		b.position.P += b.Width() - b.topWidth
+	} else {
+		b.position.P = b.position.P + b.bottomOffset
+		if newBottomOffset < 0 {
+			b.position.P -= newBottomOffset
+		}
+	}
+	b.bottomOffset = newBottomOffset
+	b.bend.P = 1 - b.bend.P
+}
+
 func (b *BentTrapezoid) Copy() Shape {
 	k := *b
 	return &k

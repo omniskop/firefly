@@ -25,6 +25,7 @@ type Pattern interface {
 	json.Marshaler
 
 	Pattern() Pattern // this is just here to distinguish Pattern from an empty interface
+	MirrorP()         // mirrors the pattern on the P axis
 	Copy() Pattern
 }
 
@@ -90,6 +91,10 @@ func (c *SolidColor) Pattern() Pattern {
 	return c
 }
 
+func (c *SolidColor) MirrorP() {
+	// no action needed
+}
+
 func (c *SolidColor) Copy() Pattern {
 	r, g, b, a := c.RGBA()
 	return NewSolidColor(color.RGBA64{R: uint16(r), G: uint16(g), B: uint16(b), A: uint16(a)})
@@ -150,6 +155,11 @@ func NewLinearGradient(a color.Color, b color.Color) *LinearGradient {
 // Pattern implements the Pattern interface
 func (g *LinearGradient) Pattern() Pattern {
 	return g
+}
+
+func (g *LinearGradient) MirrorP() {
+	g.Start.Point.P = 1 - g.Start.Point.P
+	g.Stop.Point.P = 1 - g.Stop.Point.P
 }
 
 func (g *LinearGradient) Copy() Pattern {

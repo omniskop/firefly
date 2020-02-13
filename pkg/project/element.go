@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/omniskop/firefly/pkg/project/shape"
-
 	"github.com/omniskop/firefly/pkg/project/vectorpath"
 )
 
@@ -49,6 +48,17 @@ func (e *Element) Copy() *Element {
 		Shape:   e.Shape.Copy(),
 		Pattern: e.Pattern.Copy(),
 	}
+}
+
+// MirrorP mirrors this element on the P axis around the center of the scene
+func (e *Element) Mirror() {
+	e.Shape.MirrorP()
+	e.Pattern.MirrorP()
+
+	bounds := e.Shape.Bounds()
+	topRight := bounds.Location.P + bounds.Dimensions.P
+	mirrored := 0.5 + (0.5 - topRight)
+	e.Shape.Move(vectorpath.Point{P: mirrored - bounds.Location.P, T: 0})
 }
 
 // UnmarshalJSON will take data and try to parse it into an Element.

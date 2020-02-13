@@ -241,6 +241,16 @@ func (e *Editor) Open(bool) {
 	e.applicationCallbacks["open"]()
 }
 
+func (e *Editor) mirrorElementAction(bool) {
+	if e.stage.selection == nil {
+		return
+	}
+	copiedElement := e.stage.selection.element.Copy()
+	copiedElement.Mirror()
+	item := e.stage.addElement(copiedElement)
+	item.selectElement()
+}
+
 func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
 	switch core.Qt__Key(event.Key()) {
 	case core.Qt__Key_Space:

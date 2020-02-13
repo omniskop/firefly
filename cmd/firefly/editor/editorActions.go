@@ -19,10 +19,11 @@ type editorActions struct {
 	newTrapez *widgets.QAction
 	toolGroup *widgets.QActionGroup
 
-	save  *widgets.QAction
-	open  *widgets.QAction
-	copy  *widgets.QAction
-	paste *widgets.QAction
+	save          *widgets.QAction
+	open          *widgets.QAction
+	copy          *widgets.QAction
+	paste         *widgets.QAction
+	mirrorElement *widgets.QAction
 
 	solidColor     *widgets.QAction
 	linearGradient *widgets.QAction
@@ -57,6 +58,8 @@ func newEditorActions() *editorActions {
 	actions.copy.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Copy))
 	actions.paste = widgets.NewQAction2("Paste", nil)
 	actions.paste.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Paste))
+	actions.mirrorElement = widgets.NewQAction2("Mirror", nil)
+	actions.mirrorElement.SetShortcut(gui.NewQKeySequence2("m", gui.QKeySequence__NativeText))
 
 	actions.solidColor = newCheckableQActionWithIcon("Solid Color", "assets/images/toolbar solid color.imageset/toolbar solid color.png")
 	actions.solidColor.SetChecked(true)
@@ -79,6 +82,7 @@ func (actions *editorActions) connectToEditor(e *Editor) {
 	e.userActions.open.ConnectTriggered(e.Open)
 	e.userActions.copy.ConnectTriggered(e.Copy)
 	e.userActions.paste.ConnectTriggered(e.Paste)
+	e.userActions.mirrorElement.ConnectTriggered(e.mirrorElementAction)
 	e.userActions.patternGroup.ConnectTriggered(e.ToolbarPatternAction)
 	e.userActions.colorA.ConnectTriggered(e.ToolbarColorAAction)
 	e.userActions.colorB.ConnectTriggered(e.ToolbarColorBAction)
@@ -142,6 +146,10 @@ func (actions *editorActions) buildMenuBar() *widgets.QMenuBar {
 	editMenu.AddActions([]*widgets.QAction{
 		actions.copy,
 		actions.paste,
+	})
+	editMenu.AddSeparator()
+	editMenu.AddActions([]*widgets.QAction{
+		actions.mirrorElement,
 	})
 
 	return menubar

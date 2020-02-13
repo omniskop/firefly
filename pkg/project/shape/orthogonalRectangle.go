@@ -210,6 +210,10 @@ func (or *OrthogonalRectangle) SetCreationBounds(origin vectorpath.Point, size v
 	or.SetHandle(2, origin.Add(size))
 }
 
+func (or *OrthogonalRectangle) MirrorP() {
+	// No actions required
+}
+
 func (or *OrthogonalRectangle) Copy() Shape {
 	return NewOrthogonalRectangle(or.Origin(), or.Width(), or.Duration())
 }
