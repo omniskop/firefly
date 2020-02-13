@@ -264,17 +264,18 @@ func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
 		logrus.Info("file saved!")
 	}
 	*/
-	case core.Qt__Key_9:
+	case core.Qt__Key_1:
 		t := e.stage.time()
 		logrus.Debug("time is ", t, " ", e.player.Time())
 		e.stage.setTime(t)
+	case core.Qt__Key_2:
+		e.stage.debugShowBounds = !e.stage.debugShowBounds
+	case core.Qt__Key_0:
+		e.player.(*audio.FilePlayer).SetPlaybackRate(1)
+	case core.Qt__Key_9:
+		e.player.(*audio.FilePlayer).SetPlaybackRate(0.5)
 	case core.Qt__Key_8:
-		player := e.player.(*audio.FilePlayer)
-		if player.PlaybackRate() == 0.5 {
-			player.SetPlaybackRate(1)
-		} else {
-			player.SetPlaybackRate(0.5)
-		}
+		e.player.(*audio.FilePlayer).SetPlaybackRate(0.25)
 	}
 }
 
