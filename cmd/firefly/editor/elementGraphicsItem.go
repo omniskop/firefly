@@ -12,7 +12,7 @@ import (
 
 var selectionPen = gui.NewQPen4(
 	gui.NewQBrush3(gui.NewQColor3(255, 255, 255, 255), core.Qt__SolidPattern),
-	1,
+	0,
 	core.Qt__SolidLine,
 	core.Qt__FlatCap,
 	core.Qt__BevelJoin,
