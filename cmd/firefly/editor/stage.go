@@ -262,7 +262,7 @@ func (s *stage) sceneMousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
 	if s.editor.userActions.toolGroup.CheckedAction().Pointer() != s.editor.userActions.cursor.Pointer() {
 		var elementColor project.Pattern = project.NewSolidColorRGBA(255, 255, 255, 255)
 		if s.selection != nil {
-			elementColor = s.selection.element.Pattern
+			elementColor = s.selection.element.Pattern.Copy()
 		}
 		s.creationElement = newElementGraphicsItem(s, &project.Element{
 			ZIndex:  0,
