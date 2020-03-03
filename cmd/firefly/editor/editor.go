@@ -159,6 +159,9 @@ func (e *Editor) ToolbarPatternAction(action *widgets.QAction) {
 
 func (e *Editor) ToolbarColorAAction(bool) {
 	// TODO: rewrite
+	if e.stage.selection == nil {
+		return
+	}
 	var col color.Color
 	switch p := e.stage.selection.element.Pattern.(type) {
 	case *project.SolidColor:
@@ -184,6 +187,9 @@ func (e *Editor) ToolbarColorAAction(bool) {
 
 func (e *Editor) ToolbarColorBAction(bool) {
 	// TODO: rewrite
+	if e.stage.selection == nil {
+		return
+	}
 	var col color.Color
 	switch p := e.stage.selection.element.Pattern.(type) {
 	case *project.SolidColor:
