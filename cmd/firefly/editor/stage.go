@@ -273,7 +273,9 @@ func (s *stage) sceneMousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
 		s.creationStart = vpPoint(event.ScenePos())
 		s.creationElement.selectElement()
 		logrus.WithField("start", s.creationStart).Debug("a new element is being created")
-		goto exit
+		event.Accept() // don't handle this event any further
+		s.scene.MousePressEventDefault(event)
+		return
 	}
 
 	if s.selection != nil {
@@ -284,17 +286,18 @@ func (s *stage) sceneMousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
 		}
 	}
 
-exit:
-	event.Ignore()
+	event.Ignore() // ignore means that the event will be handled further
 	s.scene.MousePressEventDefault(event)
 }
 
 func (s *stage) sceneMouseReleaseEvent(event *widgets.QGraphicsSceneMouseEvent) {
 	if s.creationElement != nil {
+		// an element is currently being created
 		s.projectScene.Elements = append(s.projectScene.Elements, s.creationElement.element)
 		// we do this to get the new correct reference to the element in the slice because element is copied
 		s.creationElement.element = s.projectScene.Elements[len(s.projectScene.Elements)-1]
 		s.creationElement = nil
+		s.editor.userActions.cursor.Toggle() // switch the tool back to the standard cursor
 	}
 
 	event.Ignore()

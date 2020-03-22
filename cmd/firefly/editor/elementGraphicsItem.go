@@ -81,24 +81,26 @@ func (item *elementGraphicsItem) updateHandles(except int) {
 }
 
 func (item *elementGraphicsItem) mousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
-	logrus.Trace("element pressed")
+	if item.parent.creationElement != nil {
+		// an element is currently being created and this element should ignore the mouse event
+		return
+	}
 	item.selectElement()
 }
 
 func (item *elementGraphicsItem) itemChangeEvent(change widgets.QGraphicsItem__GraphicsItemChange, value *core.QVariant) *core.QVariant {
-	if change == widgets.QGraphicsItem__ItemPositionHasChanged {
+	if change == widgets.QGraphicsItem__ItemPositionChange {
+		if item.parent.creationElement != nil && item.parent.creationElement.Pointer() != item.Pointer() {
+			// if an element is currently being created at it is not this element itself the move should be ignored
+			// the change will be overwritten by the return value of this function
+			return core.NewQVariant28(core.NewQPointF())
+		}
 		if item.ignoreNextPositionChange {
 			item.ignoreNextPositionChange = false
 			goto end
 		}
 		item.element.Shape.SetOrigin(vpPoint(item.ScenePos()))
 	}
-	//if change == widgets.QGraphicsItem__ItemPositionChange {
-	//	newPos := core.NewQPointFFromPointer(value.Pointer())
-	//	diff := vpPoint(newPos).Sub(vpPoint(item.Pos()))
-	//	fmt.Println(diff)
-	//	item.element.Shape.Move(diff)
-	//}
 
 end:
 	return item.ItemChangeDefault(change, value)
