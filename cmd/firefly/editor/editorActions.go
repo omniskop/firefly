@@ -19,11 +19,13 @@ type editorActions struct {
 	newTrapez *widgets.QAction
 	toolGroup *widgets.QActionGroup
 
-	save          *widgets.QAction
-	open          *widgets.QAction
+	save *widgets.QAction
+	open *widgets.QAction
+
 	copy          *widgets.QAction
 	paste         *widgets.QAction
 	mirrorElement *widgets.QAction
+	delete        *widgets.QAction
 
 	solidColor     *widgets.QAction
 	linearGradient *widgets.QAction
@@ -60,6 +62,8 @@ func newEditorActions() *editorActions {
 	actions.paste.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Paste))
 	actions.mirrorElement = widgets.NewQAction2("Mirror", nil)
 	actions.mirrorElement.SetShortcut(gui.NewQKeySequence2("m", gui.QKeySequence__NativeText))
+	actions.delete = widgets.NewQAction2("Delete", nil)
+	actions.delete.SetShortcuts([]*gui.QKeySequence{newQKeySequenceFromKeys(core.Qt__Key_Backspace), newQKeySequenceFromKeys(core.Qt__Key_Delete)}) // Qt__KeySequence_Backspace would not work on macOS
 
 	actions.solidColor = newCheckableQActionWithIcon("Solid Color", "assets/images/toolbar solid color.imageset/toolbar solid color.png")
 	actions.solidColor.SetChecked(true)
@@ -83,6 +87,7 @@ func (actions *editorActions) connectToEditor(e *Editor) {
 	e.userActions.copy.ConnectTriggered(e.Copy)
 	e.userActions.paste.ConnectTriggered(e.Paste)
 	e.userActions.mirrorElement.ConnectTriggered(e.mirrorElementAction)
+	e.userActions.delete.ConnectTriggered(e.deleteSelectedElement)
 	e.userActions.patternGroup.ConnectTriggered(e.ToolbarPatternAction)
 	e.userActions.colorA.ConnectTriggered(e.ToolbarColorAAction)
 	e.userActions.colorB.ConnectTriggered(e.ToolbarColorBAction)
@@ -144,6 +149,7 @@ func (actions *editorActions) buildMenuBar() *widgets.QMenuBar {
 
 	editMenu := menubar.AddMenu2("Edit")
 	editMenu.AddActions([]*widgets.QAction{
+		actions.delete,
 		actions.copy,
 		actions.paste,
 	})
@@ -175,4 +181,19 @@ func getPathPrefix() string {
 		//return filepath.Dir(name) + "/../.."
 	}
 	return ""
+}
+
+func newQKeySequenceFromKeys(firstKey core.Qt__Key, additional ...core.Qt__Key) *gui.QKeySequence {
+	switch len(additional) {
+	case 0:
+		return gui.NewQKeySequence3(int(firstKey), 0, 0, 0)
+	case 1:
+		return gui.NewQKeySequence3(int(firstKey), int(additional[0]), 0, 0)
+	case 2:
+		return gui.NewQKeySequence3(int(firstKey), int(additional[1]), int(additional[2]), 0)
+	case 3:
+		fallthrough
+	default:
+		return gui.NewQKeySequence3(int(firstKey), int(additional[1]), int(additional[2]), int(additional[3]))
+	}
 }

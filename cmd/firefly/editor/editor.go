@@ -234,6 +234,12 @@ func (e *Editor) Paste(bool) {
 	logrus.Info("pasted element")
 }
 
+func (e *Editor) deleteSelectedElement(bool) {
+	if e.stage.selection != nil {
+		e.stage.removeElement(e.stage.selection)
+	}
+}
+
 func (e *Editor) Save(bool) {
 	//path := widgets.NewQFileDialog(e.window, core.Qt__Dialog)
 	path := widgets.QFileDialog_GetSaveFileName(e.window, "Save the Project", "./project.ffp", "", "", 0)
@@ -267,10 +273,6 @@ func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
 		} else {
 			e.playing = true
 			e.player.Play()
-		}
-	case core.Qt__Key_Backspace:
-		if e.stage.selection != nil {
-			e.stage.removeElement(e.stage.selection)
 		}
 	case core.Qt__Key_Minus:
 		e.stage.scaleScene(0.9)
