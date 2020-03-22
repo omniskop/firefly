@@ -313,10 +313,20 @@ func (s *stage) sceneMouseMoveEvent(event *widgets.QGraphicsSceneMouseEvent) {
 }
 
 func (s *stage) wheelEvent(event *gui.QWheelEvent) {
-	// if this is a wheel event and alt is held we want to scale the viewport
-	if (event.Modifiers()&core.Qt__AltModifier != 0) && event.Type() == core.QEvent__Wheel {
-		// TODO: Use AngleDelta on platforms that don't support PixelDelta (See: https://doc.qt.io/qt-5/qwheelevent.html#pixelDelta)
+	// if this is a wheel event and a modifier is held we want to scale the viewport
+	// on windows the alt modifier does not seem to work so ctrl will be used in there
+	// TODO: figure out why that is the case
+	// we could potentially make this a setting
+	modifier := core.Qt__ControlModifier
+	if runtime.GOOS == "windows" {
+		modifier = core.Qt__AltModifier
+	}
+	if (event.Modifiers()&modifier != 0) && event.Type() == core.QEvent__Wheel {
 		deltaY := float64(event.PixelDelta().Y())
+		// Use AngleDelta on platforms that don't support PixelDelta (See: https://doc.qt.io/qt-5/qwheelevent.html#pixelDelta)
+		if deltaY == 0 {
+			deltaY = float64(event.AngleDelta().Y()) * 5
+		}
 		deltaY /= 1000
 		s.scaleScene(1 + deltaY)
 		return
@@ -381,7 +391,7 @@ func (s *stage) resizeEvent(event *gui.QResizeEvent) {
 		return
 	}
 
-	// calculate the scaling og the window and then apply the same to the view
+	// calculate the scaling of the window and then apply the same to the view
 	s.Scale(
 		float64(event.Size().Width())/float64(event.OldSize().Width()),
 		float64(event.Size().Height())/float64(event.OldSize().Height()),

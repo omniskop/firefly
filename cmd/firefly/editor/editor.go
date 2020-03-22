@@ -272,6 +272,10 @@ func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
 		if e.stage.selection != nil {
 			e.stage.removeElement(e.stage.selection)
 		}
+	case core.Qt__Key_Minus:
+		e.stage.scaleScene(0.9)
+	case core.Qt__Key_Plus:
+		e.stage.scaleScene(1.1)
 	/*case core.Qt__Key_S:
 	err := storage.SaveFile("../project_save.json", e.project)
 	if err != nil {
