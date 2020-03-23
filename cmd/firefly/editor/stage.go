@@ -25,7 +25,7 @@ type stage struct {
 	projectScene *project.Scene
 	editor       *Editor
 	duration     float64
-	selection    *elementGraphicsItem
+	selection    elementList
 
 	creationElement *elementGraphicsItem
 	creationStart   vectorpath.Point
@@ -123,7 +123,7 @@ func (s *stage) createElements() {
 	rect.SetBrush(gui.NewQBrush3(gui.NewQColor3(32, 34, 37, 255), core.Qt__SolidPattern))
 	rect.ConnectMousePressEvent(func(event *widgets.QGraphicsSceneMouseEvent) {
 		if s.creationElement == nil {
-			s.elementSelected(nil)
+			s.selection.clear()
 		}
 	})
 	s.scene.AddItem(rect)
@@ -150,13 +150,17 @@ func (s *stage) addElement(element *project.Element) *elementGraphicsItem {
 	return item
 }
 
+func (s *stage) addElements(elements []*project.Element) []*elementGraphicsItem {
+	var out = make([]*elementGraphicsItem, len(elements))
+	for i, element := range elements {
+		out[i] = s.addElement(element)
+	}
+	return out
+	}
+
 func (s *stage) removeElement(item *elementGraphicsItem) {
-	if s.selection == item {
-		s.selection = nil
-	}
-	if s.creationElement == item {
-		s.creationElement = nil
-	}
+	s.selection.removeIfFound(item)
+
 	s.scene.RemoveItem(item)
 	for i := range s.projectScene.Elements {
 		if s.projectScene.Elements[i] == item.element {
@@ -169,6 +173,12 @@ func (s *stage) removeElement(item *elementGraphicsItem) {
 		}
 	}
 	logrus.Error("an element that should have been deleted could not be found in the scene")
+}
+
+func (s *stage) removeElements(items []*elementGraphicsItem) {
+	for _, item := range items {
+		s.removeElement(item)
+	}
 }
 
 func (s *stage) scaleScene(factor float64) {
@@ -236,17 +246,28 @@ func (s *stage) sceneChanged([]*core.QRectF) {
 	s.updateNeedleFrame()
 }
 
-func (s *stage) elementSelected(item *elementGraphicsItem) {
-	logrus.Trace("editor element selected")
-	if s.selection != item {
-		if s.selection != nil {
-			logrus.Trace("element deselected")
-			s.selection.deselectElement()
+func (s *stage) elementHasBeenClicked(item *elementGraphicsItem, event *widgets.QGraphicsSceneMouseEvent) {
+	if item.parent.creationElement != nil {
+		// an element is currently being created and this element should ignore the mouse event
+		return
+	}
+
+	if event.Modifiers()&core.Qt__ShiftModifier != 0 {
+		// shift is held ...
+		if s.selection.contains(item) {
+			// ... and the element is already selected
+			// deselect the element
+			s.selection.removeIfFound(item)
 		} else {
-			logrus.WithField("time", item.element.Shape.Time()).Trace("editor selection changed")
+			// ... and the element is not already selected
+			// add the element to the selection
+			s.selection.add(item)
 		}
-		s.selection = item
-		s.editor.elementSelected(item)
+	} else if !s.selection.contains(item) {
+		// shift is not held and not already selected
+		// change the selection to only contain this element
+		s.selection.clear()
+		s.selection.add(item)
 	}
 }
 
@@ -261,8 +282,9 @@ func (s *stage) sceneMousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
 
 	if s.editor.userActions.toolGroup.CheckedAction().Pointer() != s.editor.userActions.cursor.Pointer() {
 		var elementColor project.Pattern = project.NewSolidColorRGBA(255, 255, 255, 255)
-		if s.selection != nil {
-			elementColor = s.selection.element.Pattern.Copy()
+		if !s.selection.isEmpty() {
+			// we copy the style of the first selected element
+			elementColor = s.selection.elements[0].element.Pattern.Copy()
 		}
 		s.creationElement = newElementGraphicsItem(s, &project.Element{
 			ZIndex:  0,
@@ -271,18 +293,17 @@ func (s *stage) sceneMousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
 		})
 		s.scene.AddItem(s.creationElement)
 		s.creationStart = vpPoint(event.ScenePos())
-		s.creationElement.selectElement()
+		s.selection.set(s.creationElement)
 		logrus.WithField("start", s.creationStart).Debug("a new element is being created")
 		event.Accept() // don't handle this event any further
 		s.scene.MousePressEventDefault(event)
 		return
 	}
 
-	if s.selection != nil {
+	if !s.selection.isEmpty() {
 		hitItem := s.scene.ItemAt(event.ScenePos(), s.ViewportTransform())
 		if hitItem == nil {
-			s.selection.deselectElement()
-			s.selection = nil
+			s.selection.clear()
 		}
 	}
 
@@ -403,11 +424,12 @@ func (s *stage) resizeEvent(event *gui.QResizeEvent) {
 }
 
 func (s *stage) drawForeground(painter *gui.QPainter, rect *core.QRectF) {
-	if s.debugShowBounds && s.selection != nil {
+	if s.debugShowBounds && !s.selection.isEmpty() {
+		for _, item := range s.selection.elements {
 		painter.SetPen(noPen)
 		painter.SetBrush(gui.NewQBrush3(gui.NewQColor3(0, 0, 255, 100), core.Qt__SolidPattern))
-		bounds := s.selection.BoundingRect()
-		bounds.Translate2(s.selection.Pos())
+			bounds := item.BoundingRect()
+			bounds.Translate2(item.Pos())
 		painter.DrawRect(bounds)
 
 		pen := gui.NewQPen4(
@@ -421,8 +443,9 @@ func (s *stage) drawForeground(painter *gui.QPainter, rect *core.QRectF) {
 		painter.SetPen(pen)
 		painter.SetBrush(gui.NewQBrush3(gui.NewQColor3(0, 0, 0, 0), core.Qt__SolidPattern))
 
-		myBounds := s.selection.element.Shape.Bounds()
+			myBounds := item.element.Shape.Bounds()
 		painter.DrawRect(core.NewQRectF4(myBounds.Location.P, myBounds.Location.T, myBounds.Dimensions.P, myBounds.Dimensions.T))
+	}
 	}
 
 	var needleStart *core.QPointF

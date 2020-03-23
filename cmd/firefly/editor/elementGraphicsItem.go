@@ -28,7 +28,7 @@ type elementGraphicsItem struct {
 	parent                     *stage                // the parent editor this element belongs to
 	handles                    []*handleGraphicsItem // the handle items that are visible when the element is selected
 	gradientItem               *gradientGraphicsItem
-	ignoreNextPositionChange   bool
+	ignoreNextPositionChange   byte
 }
 
 func newElementGraphicsItem(parentStage *stage, element *project.Element) *elementGraphicsItem {
@@ -47,7 +47,7 @@ func newElementGraphicsItem(parentStage *stage, element *project.Element) *eleme
 }
 
 func (item *elementGraphicsItem) updatePath() {
-	item.ignoreNextPositionChange = true
+	item.ignoreNextPositionChange = 1
 	item.PrepareGeometryChange()
 	item.SetPos(qtPoint(item.element.Shape.Origin()))
 	item.SetPath(pathFromElement(item.element))
@@ -57,9 +57,21 @@ func (item *elementGraphicsItem) updatePath() {
 // updatePattern sets the brush of the element and updates the gradient ui if necessary
 func (item *elementGraphicsItem) updatePattern() {
 	item.SetBrush(NewQBrushFromPattern(item.element.Pattern)) // TODO: modify brush instead of replacing it
-	if item.gradientItem != nil {
-		if linearGradient, ok := item.element.Pattern.(*project.LinearGradient); ok {
-			item.gradientItem.updateGradient(linearGradient)
+	if item.handles == nil {
+		// the element is not selected and we do not need to update a potential gradient
+		return
+	}
+	switch pat := item.element.Pattern.(type) {
+	case *project.SolidColor:
+		if item.gradientItem != nil {
+			item.Scene().RemoveItem(item.gradientItem)
+			item.gradientItem = nil
+		}
+	case *project.LinearGradient:
+		if item.gradientItem == nil {
+			item.gradientItem = newGradientGraphicsItem(item, pat)
+		} else {
+			item.gradientItem.updateGradient(pat)
 		}
 	}
 }
@@ -81,11 +93,9 @@ func (item *elementGraphicsItem) updateHandles(except int) {
 }
 
 func (item *elementGraphicsItem) mousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
-	if item.parent.creationElement != nil {
-		// an element is currently being created and this element should ignore the mouse event
-		return
-	}
-	item.selectElement()
+	event.Accept() // accept this event to stop this event from propagating to the parent
+	item.parent.elementHasBeenClicked(item, event)
+	item.MousePressEventDefault(event)
 }
 
 func (item *elementGraphicsItem) itemChangeEvent(change widgets.QGraphicsItem__GraphicsItemChange, value *core.QVariant) *core.QVariant {
@@ -95,20 +105,35 @@ func (item *elementGraphicsItem) itemChangeEvent(change widgets.QGraphicsItem__G
 			// the change will be overwritten by the return value of this function
 			return core.NewQVariant28(core.NewQPointF())
 		}
-		if item.ignoreNextPositionChange {
-			item.ignoreNextPositionChange = false
+		if item.ignoreNextPositionChange == 1 {
+			item.ignoreNextPositionChange = 0
 			goto end
 		}
 		item.element.Shape.SetOrigin(vpPoint(item.ScenePos()))
+		if item.ignoreNextPositionChange == 2 {
+			item.ignoreNextPositionChange = 0
+			goto end
+		}
+		//newPos := core.NewQPointFFromPointer(value.Pointer())
+		newPos := value.ToPointF()
+		oldPos := item.Pos()
+		change := core.NewQPointF3(newPos.X()-oldPos.X(), newPos.Y()-oldPos.Y())
+		for _, element := range item.parent.selection.elements {
+			if element.Pointer() == item.Pointer() {
+				continue
+			}
+			element.ignoreNextPositionChange = 2
+			element.MoveBy(change.X(), change.Y())
+		}
 	}
 
 end:
 	return item.ItemChangeDefault(change, value)
 }
 
-func (item *elementGraphicsItem) selectElement() {
+func (item *elementGraphicsItem) showHandles() {
 	if len(item.handles) != 0 {
-		logrus.Trace("element already selected")
+		logrus.Warn("element already has handles")
 		return
 	}
 
@@ -117,7 +142,6 @@ func (item *elementGraphicsItem) selectElement() {
 	for i, handle := range item.element.Shape.Handles() {
 		item.handles[i] = newHandleGraphicsItem(item, handle, i)
 	}
-	logrus.WithField("handles", len(item.handles)).Trace("created handles")
 
 	item.SetPen(selectionPen)
 
@@ -127,12 +151,9 @@ func (item *elementGraphicsItem) selectElement() {
 			item.gradientItem = newGradientGraphicsItem(item, linearGradient)
 		}
 	}
-
-	item.parent.elementSelected(item)
 }
 
-func (item *elementGraphicsItem) deselectElement() {
-	logrus.WithFields(logrus.Fields{"handles": len(item.handles), "item": item}).Trace("deselectElement called")
+func (item *elementGraphicsItem) hideHandles() {
 	scene := item.Scene()
 	for _, handleItem := range item.handles {
 		scene.RemoveItem(handleItem)
@@ -145,10 +166,6 @@ func (item *elementGraphicsItem) deselectElement() {
 	}
 
 	item.SetPen(noPen)
-
-	// TODO: handle this through a callback in the stage
-	// TODO: create clear rules which methods should be called for controlling the selection of elements
-	item.parent.selection = nil
 }
 
 func pathFromElement(element *project.Element) *gui.QPainterPath {

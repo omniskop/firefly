@@ -1,6 +1,8 @@
 package editor
 
 import (
+	"reflect"
+
 	"github.com/omniskop/firefly/cmd/firefly/audio"
 	"github.com/omniskop/firefly/pkg/project"
 	"github.com/sirupsen/logrus"
@@ -24,7 +26,7 @@ type Editor struct {
 	updateTimer          *core.QTimer
 	userActions          *editorActions
 
-	clipboard *project.Element
+	clipboard []*project.Element
 }
 
 func New(proj *project.Project, applicationCallbacks map[string]func()) *Editor {
@@ -96,19 +98,43 @@ func (e *Editor) SetTime(t float64) {
 }
 
 // elementSelected will be called by the stage to notify the editor about an element getting selected
-func (e *Editor) elementSelected(item *elementGraphicsItem) {
-	if item == nil {
+func (e *Editor) selectionChanged() {
+	e.updateToolbar()
+}
+
+// updateToolbar updates the buttons in the toolbar to reflect the current state
+func (e *Editor) updateToolbar() {
+	if e.stage.selection.isEmpty() {
 		return
 	}
-	// update pattern toolbar
-	switch e.stage.selection.element.Pattern.(type) {
+
+	// find out if all selected elements have the same pattern type
+	var patternType string = reflect.TypeOf(e.stage.selection.elements[0].element.Pattern).String()
+	for _, item := range e.stage.selection.elements {
+		if reflect.TypeOf(item.element.Pattern).String() != patternType {
+			goto patternsOfDifferentType // a different type was found
+		}
+	}
+
+	// if they are all of the same type, find out which and update the toolbar accordingly
+	switch e.stage.selection.elements[0].element.Pattern.(type) {
 	case *project.SolidColor:
 		e.userActions.solidColor.SetChecked(true)
+		e.userActions.colorA.SetDisabled(false)
 		e.userActions.colorB.SetDisabled(true)
 	case *project.LinearGradient:
 		e.userActions.linearGradient.SetChecked(true)
+		e.userActions.colorA.SetDisabled(false)
 		e.userActions.colorB.SetDisabled(false)
 	}
+
+	return
+patternsOfDifferentType:
+	// the patterns are not the same
+	e.userActions.linearGradient.SetChecked(false)
+	e.userActions.solidColor.SetChecked(false)
+	e.userActions.colorA.SetDisabled(true)
+	e.userActions.colorB.SetDisabled(true)
 }
 
 func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
