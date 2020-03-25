@@ -351,9 +351,9 @@ func (s *stage) wheelEvent(event *gui.QWheelEvent) {
 	// on windows the alt modifier does not seem to work so ctrl will be used in there
 	// TODO: figure out why that is the case
 	// we could potentially make this a setting
-	modifier := core.Qt__ControlModifier
+	modifier := core.Qt__AltModifier
 	if runtime.GOOS == "windows" {
-		modifier = core.Qt__AltModifier
+		modifier = core.Qt__ControlModifier
 	}
 	if (event.Modifiers()&modifier != 0) && event.Type() == core.QEvent__Wheel {
 		deltaY := float64(event.PixelDelta().Y())
