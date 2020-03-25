@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 	"runtime"
+	"unsafe"
 
 	"github.com/omniskop/firefly/pkg/project/vectorpath"
 
@@ -453,6 +454,38 @@ func (s *stage) viewMouseReleaseEvent(event *gui.QMouseEvent) {
 
 	event.Ignore()
 	s.MouseReleaseEventDefault(event)
+}
+
+func (s *stage) keyPressEvent(event *gui.QKeyEvent) {
+	var pixelChange = 1
+	if event.Modifiers()&core.Qt__ShiftModifier != 0 {
+		pixelChange = 10
+	}
+	switch core.Qt__Key(event.Key()) {
+	case core.Qt__Key_Up:
+		change := s.MapToScene6(0, 0, pixelChange, pixelChange).BoundingRect()
+		for _, item := range s.selection.elements {
+			item.MoveBy(0, -change.Height())
+		}
+	case core.Qt__Key_Right:
+		change := s.MapToScene6(0, 0, pixelChange, pixelChange).BoundingRect()
+		for _, item := range s.selection.elements {
+			item.MoveBy(change.Width(), 0)
+		}
+	case core.Qt__Key_Down:
+		change := s.MapToScene6(0, 0, pixelChange, pixelChange).BoundingRect()
+		for _, item := range s.selection.elements {
+			item.MoveBy(0, change.Height())
+		}
+	case core.Qt__Key_Left:
+		change := s.MapToScene6(0, 0, pixelChange, pixelChange).BoundingRect()
+		for _, item := range s.selection.elements {
+			item.MoveBy(-change.Width(), 0)
+		}
+	default:
+		event.Ignore()
+		s.KeyPressEventDefault(event)
+	}
 }
 
 func (s *stage) drawForeground(painter *gui.QPainter, rect *core.QRectF) {
