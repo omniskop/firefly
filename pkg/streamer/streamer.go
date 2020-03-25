@@ -34,6 +34,6 @@ func (s Streamer) Stream(frame scanner.Frame) {
 	}
 	_, err := s.destination.Write(data)
 	if err != nil {
-		logrus.Error("streaming error: %v", err)
+		logrus.Errorf("streaming error: %v", err)
 	}
 }

@@ -1,9 +1,6 @@
 package editor
 
 import (
-	"os"
-	"path"
-	"path/filepath"
 	"runtime"
 
 	"github.com/omniskop/firefly/pkg/project/shape"
@@ -37,12 +34,12 @@ type editorActions struct {
 func newEditorActions() *editorActions {
 	var actions = new(editorActions)
 
-	actions.cursor = newCheckableQActionWithIcon("Move", "assets/images/toolbar cursor.imageset/toolbar cursor.png")
+	actions.cursor = newCheckableQActionWithIcon("Move", ":assets/images/toolbar cursor.imageset/toolbar cursor.png")
 	actions.cursor.SetShortcut(gui.NewQKeySequence3(int(core.Qt__Key_V), 0, 0, 0))
 	actions.cursor.SetChecked(true)
 
-	actions.newRect = newCheckableQActionWithIcon("Create Rectangle", "assets/images/toolbar new rect.imageset/toolbar new rect.png")
-	actions.newTrapez = newCheckableQActionWithIcon("Create Trapezoid", "assets/images/toolbar new trapez.imageset/toolbar new trapez.png")
+	actions.newRect = newCheckableQActionWithIcon("Create Rectangle", ":assets/images/toolbar new rect.imageset/toolbar new rect.png")
+	actions.newTrapez = newCheckableQActionWithIcon("Create Trapezoid", ":assets/images/toolbar new trapez.imageset/toolbar new trapez.png")
 
 	actions.toolGroup = widgets.NewQActionGroup(nil)
 	//TODO: when qt is updated to >= 5.14 set the ExclusionPolicy of the toolGroup to QActionGroup::ExclusiveOptional
@@ -50,10 +47,10 @@ func newEditorActions() *editorActions {
 	actions.toolGroup.AddAction(actions.newRect)
 	actions.toolGroup.AddAction(actions.newTrapez)
 
-	actions.save = newQActionWithIcon("Save...", "assets/images/toolbar save.imageset/toolbar save.png")
+	actions.save = newQActionWithIcon("Save...", ":assets/images/toolbar save.imageset/toolbar save.png")
 	actions.save.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Save))
 
-	actions.open = newQActionWithIcon("Open...", "assets/images/toolbar open.imageset/toolbar open.png")
+	actions.open = newQActionWithIcon("Open...", ":assets/images/toolbar open.imageset/toolbar open.png")
 	actions.open.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Open))
 
 	actions.copy = widgets.NewQAction2("Copy", nil)
@@ -65,14 +62,14 @@ func newEditorActions() *editorActions {
 	actions.delete = widgets.NewQAction2("Delete", nil)
 	actions.delete.SetShortcuts([]*gui.QKeySequence{newQKeySequenceFromKeys(core.Qt__Key_Backspace), newQKeySequenceFromKeys(core.Qt__Key_Delete)}) // Qt__KeySequence_Backspace would not work on macOS
 
-	actions.solidColor = newCheckableQActionWithIcon("Solid Color", "assets/images/toolbar solid color.imageset/toolbar solid color.png")
+	actions.solidColor = newCheckableQActionWithIcon("Solid Color", ":assets/images/toolbar solid color.imageset/toolbar solid color.png")
 	actions.solidColor.SetChecked(true)
-	actions.linearGradient = newCheckableQActionWithIcon("Linear Gradient", "assets/images/toolbar linear gradient.imageset/toolbar linear gradient.png")
+	actions.linearGradient = newCheckableQActionWithIcon("Linear Gradient", ":assets/images/toolbar linear gradient.imageset/toolbar linear gradient.png")
 	actions.patternGroup = widgets.NewQActionGroup(nil)
 	actions.patternGroup.AddAction(actions.solidColor)
 	actions.patternGroup.AddAction(actions.linearGradient)
-	actions.colorA = newQActionWithIcon("Choose Color", "assets/images/toolbar colorpicker.imageset/toolbar colorpicker.png")
-	actions.colorB = newQActionWithIcon("Choose Second Color", "assets/images/toolbar colorpicker.imageset/toolbar colorpicker.png")
+	actions.colorA = newQActionWithIcon("Choose Color", ":assets/images/toolbar colorpicker.imageset/toolbar colorpicker.png")
+	actions.colorB = newQActionWithIcon("Choose Second Color", ":assets/images/toolbar colorpicker.imageset/toolbar colorpicker.png")
 	actions.colorB.SetDisabled(true)
 
 	return actions
@@ -164,23 +161,14 @@ func (actions *editorActions) buildMenuBar() *widgets.QMenuBar {
 func newCheckableQActionWithIcon(name string, iconPath string) *widgets.QAction {
 	action := widgets.NewQAction2(name, nil)
 	action.SetCheckable(true)
-	action.SetIcon(gui.NewQIcon5(path.Join(getPathPrefix(), iconPath)))
+	action.SetIcon(gui.NewQIcon5(iconPath))
 	return action
 }
 
 func newQActionWithIcon(name string, iconPath string) *widgets.QAction {
 	action := widgets.NewQAction2(name, nil)
-	action.SetIcon(gui.NewQIcon5(path.Join(getPathPrefix(), iconPath)))
+	action.SetIcon(gui.NewQIcon5(iconPath))
 	return action
-}
-
-func getPathPrefix() string {
-	if runtime.GOOS == "darwin" {
-		name, _ := os.Executable()
-		return filepath.Dir(name)
-		//return filepath.Dir(name) + "/../.."
-	}
-	return ""
 }
 
 func newQKeySequenceFromKeys(firstKey core.Qt__Key, additional ...core.Qt__Key) *gui.QKeySequence {

@@ -1,0 +1,12 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+    <file>assets/images/toolbar colorpicker.imageset</file>
+    <file>assets/images/toolbar cursor.imageset</file>
+    <file>assets/images/toolbar linear gradient.imageset</file>
+    <file>assets/images/toolbar new rect.imageset</file>
+    <file>assets/images/toolbar new trapez.imageset</file>
+    <file>assets/images/toolbar open.imageset</file>
+    <file>assets/images/toolbar save.imageset</file>
+    <file>assets/images/toolbar solid color.imageset</file>
+</qresource>
+</RCC>

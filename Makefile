@@ -8,9 +8,11 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 
+QTRCC=qtrcc
+
 QTDEPLOY=qtdeploy
 
-ENV=CGO_CXXFLAGS="-g -O2 -D QT_NO_DEPRECATED_WARNINGS" QT_DIR="$HOME/Qt" QT_VERSION="5.13.1" QT_API="5.13.0"
+ENV=CGO_CXXFLAGS="-g -O2 -D QT_NO_DEPRECATED_WARNINGS" QT_DIR="${HOME}/Qt" QT_VERSION="5.13.1" QT_API="5.13.0"
 WINDOWS_FLAGS=windows_64_shared
 LINUX_FLAGS=linux
 
@@ -23,6 +25,15 @@ build_win:
 
 build_linux:
 	$(QTDEPLOY) -docker build $(LINUX_FLAGS) $(PACKAGE)
+
+deploy:
+	$(ENV) $(QTDEPLOY) build desktop $(PACKAGE)
+
+rcc:
+	$(ENV) qtrcc desktop $(PACKAGE)
+
+setup:
+	$(ENV) qtsetup
 
 test:
 	$(GOTEST) -v ./...

@@ -2,9 +2,11 @@
 
 # qtdeploy
 deploy/
-cmd/firefly/linux
-cmd/firefly/windows
-cmd/firefly/darwin
+
+# rcc
+rcc_cgo_darwin_darwin_amd64.go
+rcc_cgo_linux_linux_amd64.go
+rcc_cgo_windows_windows_amd64.go
 
 # visual studio code
 /.vscode
