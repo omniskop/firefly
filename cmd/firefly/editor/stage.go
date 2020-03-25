@@ -26,6 +26,7 @@ type stage struct {
 	editor       *Editor
 	duration     float64
 	selection    elementList
+	items        map[unsafe.Pointer]*elementGraphicsItem
 
 	creationElement *elementGraphicsItem
 	creationStart   vectorpath.Point
@@ -68,6 +69,7 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 	s.SetViewportUpdateMode(widgets.QGraphicsView__FullViewportUpdate)
 	s.SetVerticalScrollBarPolicy(core.Qt__ScrollBarAlwaysOn)
 	s.SetHorizontalScrollBarPolicy(core.Qt__ScrollBarAlwaysOff)
+	s.SetDragMode(widgets.QGraphicsView__RubberBandDrag)
 	s.FitInView(core.NewQRectF4(0, 0, editorViewWidth, 10), core.Qt__IgnoreAspectRatio)
 	s.updateScale()
 	s.SetResizeAnchor(widgets.QGraphicsView__AnchorUnderMouse)
@@ -80,6 +82,7 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 
 	s.ConnectWheelEvent(s.wheelEvent)
 	s.ConnectResizeEvent(s.resizeEvent)
+	s.ConnectMouseReleaseEvent(s.viewMouseReleaseEvent)
 	s.ConnectEvent(s.event)
 	s.ConnectEventFilter(s.eventFilter)
 	s.ConnectDrawForeground(s.drawForeground)
@@ -110,6 +113,7 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 }
 
 func (s *stage) createElements() {
+	s.items = make(map[unsafe.Pointer]*elementGraphicsItem)
 	s.scene.Clear()
 
 	rect := widgets.NewQGraphicsRectItem3(
@@ -122,9 +126,10 @@ func (s *stage) createElements() {
 	rect.SetPen(gui.NewQPen2(core.Qt__NoPen))
 	rect.SetBrush(gui.NewQBrush3(gui.NewQColor3(32, 34, 37, 255), core.Qt__SolidPattern))
 	rect.ConnectMousePressEvent(func(event *widgets.QGraphicsSceneMouseEvent) {
-		if s.creationElement == nil {
+		if s.creationElement == nil && event.Modifiers()&core.Qt__ShiftModifier == 0 {
 			s.selection.clear()
 		}
+		event.Ignore() // ignore this event so that the qt selection can start on this element
 	})
 	s.scene.AddItem(rect)
 
@@ -139,13 +144,16 @@ func (s *stage) createElements() {
 	songTitle.SetPos2(5, -35)
 
 	for i := range s.projectScene.Elements {
-		s.scene.AddItem(newElementGraphicsItem(s, s.projectScene.Elements[i]))
+		item := newElementGraphicsItem(s, s.projectScene.Elements[i])
+		s.items[item.Pointer()] = item
+		s.scene.AddItem(item)
 	}
 }
 
 func (s *stage) addElement(element *project.Element) *elementGraphicsItem {
 	s.projectScene.Elements = append(s.projectScene.Elements, element)
 	item := newElementGraphicsItem(s, s.projectScene.Elements[len(s.projectScene.Elements)-1])
+	s.items[item.Pointer()] = item
 	s.scene.AddItem(item)
 	return item
 }
@@ -161,6 +169,7 @@ func (s *stage) addElements(elements []*project.Element) []*elementGraphicsItem 
 func (s *stage) removeElement(item *elementGraphicsItem) {
 	s.selection.removeIfFound(item)
 
+	delete(s.items, item.Pointer())
 	s.scene.RemoveItem(item)
 	for i := range s.projectScene.Elements {
 		if s.projectScene.Elements[i] == item.element {
@@ -291,6 +300,7 @@ func (s *stage) sceneMousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
 			Shape:   s.editor.userActions.getSelectedShape(),
 			Pattern: elementColor,
 		})
+		s.items[s.creationElement.Pointer()] = s.creationElement
 		s.scene.AddItem(s.creationElement)
 		s.creationStart = vpPoint(event.ScenePos())
 		s.selection.set(s.creationElement)
@@ -421,6 +431,28 @@ func (s *stage) resizeEvent(event *gui.QResizeEvent) {
 		float64(event.Size().Height())/float64(event.OldSize().Height()),
 	)
 	s.updateScale()
+}
+
+func (s *stage) viewMouseReleaseEvent(event *gui.QMouseEvent) {
+	if !s.RubberBandRect().IsNull() {
+		// get the selection box in scene coordinates
+		rect := s.MapToScene2(s.RubberBandRect()).BoundingRect()
+		// get the items that intersect with the box
+		items := s.scene.Items3(rect, core.Qt__IntersectsItemBoundingRect, core.Qt__DescendingOrder, s.Transform())
+		fmt.Println(gui.QGuiApplication_KeyboardModifiers() & core.Qt__ShiftModifier)
+		if gui.QGuiApplication_KeyboardModifiers()&core.Qt__ShiftModifier == 0 {
+			s.selection.clear()
+		}
+		for _, item := range items {
+			if elementItem, ok := s.items[item.Pointer()]; ok {
+				// find the corresponding elementGraphicsItem from the generic QGraphicsItem
+				s.selection.add(elementItem)
+			}
+		}
+	}
+
+	event.Ignore()
+	s.MouseReleaseEventDefault(event)
 }
 
 func (s *stage) drawForeground(painter *gui.QPainter, rect *core.QRectF) {
