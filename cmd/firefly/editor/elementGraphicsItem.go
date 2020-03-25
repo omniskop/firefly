@@ -109,13 +109,12 @@ func (item *elementGraphicsItem) itemChangeEvent(change widgets.QGraphicsItem__G
 			item.ignoreNextPositionChange = 0
 			goto end
 		}
-		item.element.Shape.SetOrigin(vpPoint(item.ScenePos()))
+		newPos := value.ToPointF()
+		item.element.Shape.SetOrigin(vpPoint(newPos))
 		if item.ignoreNextPositionChange == 2 {
 			item.ignoreNextPositionChange = 0
 			goto end
 		}
-		//newPos := core.NewQPointFFromPointer(value.Pointer())
-		newPos := value.ToPointF()
 		oldPos := item.Pos()
 		change := core.NewQPointF3(newPos.X()-oldPos.X(), newPos.Y()-oldPos.Y())
 		for _, element := range item.parent.selection.elements {
