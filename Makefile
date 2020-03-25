@@ -13,24 +13,32 @@ QTRCC=qtrcc
 QTDEPLOY=qtdeploy
 
 ENV=CGO_CXXFLAGS="-g -O2 -D QT_NO_DEPRECATED_WARNINGS" QT_DIR="${HOME}/Qt" QT_VERSION="5.13.1" QT_API="5.13.0"
-WINDOWS_FLAGS=windows_64_shared
-LINUX_FLAGS=linux
+PLATFORM_WINDOWS=windows_64_shared
+PLATFORM_LINUX=linux
+PLATFORM_DARWIN="darwin"
 
-all: build
 build:
 	$(ENV) $(GOBUILD) -mod=vendor -o $(BINARY_NAME) -v $(PACKAGE)
 
-build_win:
-	$(QTDEPLOY) -docker build $(WINDOWS_FLAGS) $(PACKAGE)
+deploy_windows: rcc_windows
+	$(QTDEPLOY) -docker build $(PLATFORM_WINDOWS) $(PACKAGE)
 
-build_linux:
-	$(QTDEPLOY) -docker build $(LINUX_FLAGS) $(PACKAGE)
+deploy_linux: rcc_linux
+	$(QTDEPLOY) -docker build $(PLATFORM_LINUX) $(PACKAGE)
 
-deploy:
+deploy: rcc
 	$(ENV) $(QTDEPLOY) build desktop $(PACKAGE)
+
+deploy_all: deploy deploy_windows deploy_linux
 
 rcc:
 	$(ENV) qtrcc desktop $(PACKAGE)
+
+rcc_windows:
+	$(ENV) qtrcc -docker $(PLATFORM_WINDOWS) $(PACKAGE)
+
+rcc_linux:
+	$(ENV) qtrcc -docker $(PLATFORM_LINUX) $(PACKAGE)
 
 setup:
 	$(ENV) qtsetup

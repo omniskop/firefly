@@ -71,6 +71,7 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 	s.SetVerticalScrollBarPolicy(core.Qt__ScrollBarAlwaysOn)
 	s.SetHorizontalScrollBarPolicy(core.Qt__ScrollBarAlwaysOff)
 	s.SetDragMode(widgets.QGraphicsView__RubberBandDrag)
+	s.SetRubberBandSelectionMode(core.Qt__IntersectsItemShape)
 	s.FitInView(core.NewQRectF4(0, 0, editorViewWidth, 10), core.Qt__IgnoreAspectRatio)
 	s.updateScale()
 	s.SetResizeAnchor(widgets.QGraphicsView__AnchorUnderMouse)
@@ -84,6 +85,7 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 	s.ConnectWheelEvent(s.wheelEvent)
 	s.ConnectResizeEvent(s.resizeEvent)
 	s.ConnectMouseReleaseEvent(s.viewMouseReleaseEvent)
+	s.ConnectKeyPressEvent(s.keyPressEvent)
 	s.ConnectEvent(s.event)
 	s.ConnectEventFilter(s.eventFilter)
 	s.ConnectDrawForeground(s.drawForeground)
@@ -440,7 +442,6 @@ func (s *stage) viewMouseReleaseEvent(event *gui.QMouseEvent) {
 		rect := s.MapToScene2(s.RubberBandRect()).BoundingRect()
 		// get the items that intersect with the box
 		items := s.scene.Items3(rect, core.Qt__IntersectsItemBoundingRect, core.Qt__DescendingOrder, s.Transform())
-		fmt.Println(gui.QGuiApplication_KeyboardModifiers() & core.Qt__ShiftModifier)
 		if gui.QGuiApplication_KeyboardModifiers()&core.Qt__ShiftModifier == 0 {
 			s.selection.clear()
 		}
