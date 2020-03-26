@@ -1,6 +1,7 @@
 package audio
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -109,6 +110,8 @@ func GetAllFiles(paths []string) ([]potentialFile, []error) {
 
 type FilePlayer struct {
 	*multimedia.QMediaPlayer
+	onReady func()
+	onError func(error)
 }
 
 func NewFilePlayer(mediapath string) *FilePlayer {
@@ -158,22 +161,35 @@ func (p *FilePlayer) SetVolume(value float64) {
 	p.QMediaPlayer.SetVolume(int(value * 100))
 }
 
-func (p *FilePlayer) ErrorEvent(err multimedia.QMediaPlayer__Error) {
-	switch err {
+func (p *FilePlayer) OnReady(f func()) {
+	p.onReady = f
+}
+
+func (p *FilePlayer) OnError(f func(error)) {
+	p.onError = f
+}
+
+func (p *FilePlayer) ErrorEvent(qerr multimedia.QMediaPlayer__Error) {
+	var err error
+	switch qerr {
 	case multimedia.QMediaPlayer__NoError:
-		logrus.Error("[Audio] No Error")
+		return
 	case multimedia.QMediaPlayer__ResourceError:
-		logrus.Error("[Audio] Resource Error")
+		err = fmt.Errorf("fileplayer: resource error: %s", p.ErrorString())
 	case multimedia.QMediaPlayer__FormatError:
-		logrus.Error("[Audio] Format Error")
+		err = fmt.Errorf("fileplayer: format error: %s", p.ErrorString())
 	case multimedia.QMediaPlayer__NetworkError:
-		logrus.Error("[Audio] Network Error")
+		err = fmt.Errorf("fileplayer: network error: %s", p.ErrorString())
 	case multimedia.QMediaPlayer__AccessDeniedError:
-		logrus.Error("[Audio] Access Denied Error")
+		err = fmt.Errorf("fileplayer: access denied: %s", p.ErrorString())
 	case multimedia.QMediaPlayer__ServiceMissingError:
-		logrus.Error("[Audio] Service Missing Error")
+		err = fmt.Errorf("fileplayer: service missing: %s", p.ErrorString())
 	default:
-		logrus.WithField("error", err).Error("[Audio] Unknown Error")
+		err = fmt.Errorf("fileplayer: unknown error: %s", p.ErrorString())
+	}
+	logrus.Errorf("[Audio] %v", err)
+	if p.onError != nil {
+		p.onError(err)
 	}
 }
 

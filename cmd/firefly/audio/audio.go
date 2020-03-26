@@ -9,11 +9,13 @@ import (
 type Player interface {
 	Play()
 	Pause()
-	Time() float64     // the current playback time in seconds
-	SetTime(float64)   // sets the playback time
-	Duration() float64 // the duration of the song in seconds
-	Volume() float64   // the volume of the song as a value between 0 and 1
-	SetVolume(float64) // sets the volume of the song to a value between 0 and 1
+	Time() float64       // the current playback time in seconds
+	SetTime(float64)     // sets the playback time
+	Duration() float64   // the duration of the song in seconds
+	Volume() float64     // the volume of the song as a value between 0 and 1
+	SetVolume(float64)   // sets the volume of the song to a value between 0 and 1
+	OnReady(func())      // sets a function that will be called when the resource is ready
+	OnError(func(error)) // sets a function that will be called when an error occurs
 }
 
 type Provider interface {
