@@ -1,5 +1,11 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource>
+    <!-- UI FILES -->
+    <file>assets/ui/launchwindow.ui</file>
+    <file>assets/ui/projectSetup.ui</file>
+
+    <!-- IMAGES -->
+    <file>assets/images/logo.png</file>
     <file>assets/images/toolbar colorpicker.imageset</file>
     <file>assets/images/toolbar cursor.imageset</file>
     <file>assets/images/toolbar linear gradient.imageset</file>

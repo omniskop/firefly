@@ -5,7 +5,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/therecipe/qt/core"
@@ -21,18 +20,14 @@ func init() {
 }
 
 func getPathPrefix() string {
-	if runtime.GOOS == "darwin" {
-		name, _ := os.Executable()
-		return filepath.Dir(name) + "/../.."
-	}
-	return ""
+	return core.QDir_CurrentPath()
 }
 
 type fileProvider struct{}
 
 func (p *fileProvider) CanProvide(audio project.Audio) bool {
 	currentFolder := getPathPrefix()
-	files, errs := GetAllFiles([]string{path.Join(currentFolder, "assets/audio")})
+	files, errs := GetAllFiles([]string{path.Join(currentFolder, "AudioFiles")})
 	for _, err := range errs {
 		logrus.Error("[Audio][FileProvider] ", err)
 	}
@@ -51,7 +46,7 @@ func (p *fileProvider) CanProvide(audio project.Audio) bool {
 
 func (p *fileProvider) Provide(audio project.Audio) (Player, bool) {
 	currentFolder := getPathPrefix()
-	files, errs := GetAllFiles([]string{path.Join(currentFolder, "assets/audio")})
+	files, errs := GetAllFiles([]string{path.Join(currentFolder, "AudioFiles")})
 	for _, err := range errs {
 		logrus.Error("[Audio][FileProvider] ", err)
 	}
@@ -203,6 +198,9 @@ func (p *FilePlayer) MediaStatusChangedEvent(status multimedia.QMediaPlayer__Med
 		logrus.Info("[Audio] Media Status: Loading Media")
 	case multimedia.QMediaPlayer__LoadedMedia:
 		logrus.Info("[Audio] Media Status: Loaded Media")
+		if p.onReady != nil {
+			p.onReady()
+		}
 	case multimedia.QMediaPlayer__StalledMedia:
 		logrus.Info("[Audio] Media Status: Stalled Media")
 	case multimedia.QMediaPlayer__BufferingMedia:
