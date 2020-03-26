@@ -16,8 +16,9 @@ type editorActions struct {
 	newTrapez *widgets.QAction
 	toolGroup *widgets.QActionGroup
 
-	save *widgets.QAction
-	open *widgets.QAction
+	save   *widgets.QAction
+	saveAs *widgets.QAction
+	open   *widgets.QAction
 
 	copy          *widgets.QAction
 	paste         *widgets.QAction
@@ -47,9 +48,10 @@ func newEditorActions() *editorActions {
 	actions.toolGroup.AddAction(actions.newRect)
 	actions.toolGroup.AddAction(actions.newTrapez)
 
-	actions.save = newQActionWithIcon("Save...", ":assets/images/toolbar save.imageset/toolbar save.png")
+	actions.save = newQActionWithIcon("Save", ":assets/images/toolbar save.imageset/toolbar save.png")
 	actions.save.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Save))
-
+	actions.saveAs = newQActionWithIcon("Save As...", ":assets/images/toolbar save.imageset/toolbar save.png")
+	actions.saveAs.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__SaveAs))
 	actions.open = newQActionWithIcon("Open...", ":assets/images/toolbar open.imageset/toolbar open.png")
 	actions.open.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Open))
 
@@ -80,6 +82,7 @@ func (actions *editorActions) connectToEditor(e *Editor) {
 	e.userActions.newRect.ConnectTriggered(e.ToolbarElementAction)
 	e.userActions.newTrapez.ConnectTriggered(e.ToolbarElementAction)
 	e.userActions.save.ConnectTriggered(e.SaveAction)
+	e.userActions.saveAs.ConnectTriggered(e.SaveAsAction)
 	e.userActions.open.ConnectTriggered(e.OpenAction)
 	e.userActions.copy.ConnectTriggered(e.CopyAction)
 	e.userActions.paste.ConnectTriggered(e.PasteAction)
@@ -142,6 +145,7 @@ func (actions *editorActions) buildMenuBar() *widgets.QMenuBar {
 	fileMenu.AddSeparator()
 	fileMenu.AddActions([]*widgets.QAction{
 		actions.save,
+		actions.saveAs,
 	})
 
 	editMenu := menubar.AddMenu2("Edit")

@@ -53,6 +53,7 @@ func openProject() error {
 	if err != nil {
 		return err
 	}
-	editor.New(project, ApplicationCallbacks)
+	edit := editor.New(project, ApplicationCallbacks)
+	edit.SaveLocation = fileName
 	return nil
 }

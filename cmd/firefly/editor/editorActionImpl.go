@@ -162,12 +162,24 @@ func (e *Editor) deleteSelectedElementAction(bool) {
 }
 
 func (e *Editor) SaveAction(bool) {
+	if e.SaveLocation == "" {
+		e.SaveAsAction(false)
+		return
+	}
+	err := storage.SaveFile(e.SaveLocation, e.project)
+	if err != nil {
+		logrus.Error(err)
+	}
+}
+
+func (e *Editor) SaveAsAction(bool) {
 	//path := widgets.NewQFileDialog(e.window, core.Qt__Dialog)
 	path := widgets.QFileDialog_GetSaveFileName(e.window, "Save the Project", "./project.ffp", "", "", 0)
 	err := storage.SaveFile(path, e.project)
 	if err != nil {
 		logrus.Error(err)
 	}
+	e.SaveLocation = path
 }
 
 func (e *Editor) OpenAction(bool) {

@@ -27,6 +27,8 @@ type Editor struct {
 	userActions          *editorActions
 
 	clipboard []*project.Element
+
+	SaveLocation string // the location where the file is saved
 }
 
 func New(proj *project.Project, applicationCallbacks map[string]func()) *Editor {
