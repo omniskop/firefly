@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/therecipe/qt/gui"
+
 	"github.com/therecipe/qt/uitools"
 
 	"github.com/omniskop/firefly/cmd/firefly/editor"
@@ -19,6 +21,7 @@ var errUserAbort = errors.New("user aborted")
 func createApplication() *widgets.QApplication {
 	core.QCoreApplication_SetAttribute(core.Qt__AA_ShareOpenGLContexts, true)
 	app := widgets.NewQApplication(len(os.Args), os.Args)
+	app.SetWindowIcon(gui.NewQIcon5(":assets/images/logo.png"))
 	app.SetAttribute(core.Qt__AA_UseHighDpiPixmaps, true)
 	return app
 }
