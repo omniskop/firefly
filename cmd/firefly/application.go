@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/therecipe/qt/gui"
-
 	"github.com/therecipe/qt/uitools"
 
 	"github.com/omniskop/firefly/cmd/firefly/editor"

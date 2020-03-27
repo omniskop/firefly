@@ -70,6 +70,8 @@ func New(proj *project.Project, applicationCallbacks map[string]func()) *Editor 
 	})
 
 	window.Show()
+	gui.NewQWindowFromPointer(window.WindowHandle().Pointer()).ConnectScreenChanged(edit.ScreenChangedEvent)
+	edit.stage.updateNeedlePosition() // this needs to be called after the window is shown
 	edit.updateTimer.ConnectTimeout(edit.UpdateTick)
 	edit.updateTimer.Start2()
 
@@ -179,4 +181,8 @@ func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
 
 func (e *Editor) KeyReleaseEvent(event *gui.QKeyEvent) {
 
+}
+
+func (e *Editor) ScreenChangedEvent(screen *gui.QScreen) {
+	e.stage.updateNeedlePosition()
 }

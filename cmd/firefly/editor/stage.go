@@ -18,8 +18,6 @@ import (
 	"github.com/therecipe/qt/widgets"
 )
 
-const needlePosition = 100
-
 type stage struct {
 	*widgets.QGraphicsView
 	scene        *widgets.QGraphicsScene
@@ -32,9 +30,10 @@ type stage struct {
 	creationElement *elementGraphicsItem
 	creationStart   vectorpath.Point
 
-	scanner     scanner.Scanner
-	needleFrame scanner.Frame
-	streamer    streamer.Streamer
+	needlePosition int
+	scanner        scanner.Scanner
+	needleFrame    scanner.Frame
+	streamer       streamer.Streamer
 
 	nextNonUserScrollEvents uint
 
@@ -193,6 +192,19 @@ func (s *stage) removeElements(items []*elementGraphicsItem) {
 	}
 }
 
+func (s *stage) updateNeedlePosition() {
+	time := s.time()
+	//logrus.Debugf("device pixel ratio is: %f", s.editor.window.WindowHandle().Screen().DevicePixelRatio())
+	var ratio = s.editor.window.WindowHandle().Screen().DevicePixelRatio()
+	if runtime.GOOS == "darwin" {
+		ratio = 1 // on macOS the dpi scaling works out of the box
+	}
+	s.needlePosition = int(100 * ratio)
+	s.setTime(time)
+	s.updateScale()
+	s.InvalidateScene(core.NewQRectF(), widgets.QGraphicsScene__ForegroundLayer)
+}
+
 func (s *stage) scaleScene(factor float64) {
 	if factor < 0 {
 		return // this could sometimes happen and would result in the scene becoming flipped
@@ -213,18 +225,18 @@ func (s *stage) updateScale() {
 	s.nextNonUserScrollEvents++
 
 	if verticalTimeAxis {
-		needlePoint := s.MapToScene(core.NewQPoint2(0, physicalZero.Y()-needlePosition))
+		needlePoint := s.MapToScene(core.NewQPoint2(0, physicalZero.Y()-s.needlePosition))
 		heightPoint := s.MapToScene(core.NewQPoint2(0, physicalDuration.Y()+s.Viewport().Size().Height()))
 		s.scene.SetSceneRect2(0, needlePoint.Y(), editorViewWidth, heightPoint.Y())
 	} else {
-		needlePoint := s.MapToScene(core.NewQPoint2(physicalZero.X()-needlePosition, 0))
+		needlePoint := s.MapToScene(core.NewQPoint2(physicalZero.X()-s.needlePosition, 0))
 		heightPoint := s.MapToScene(core.NewQPoint2(physicalDuration.X()+s.Viewport().Size().Width(), 0))
 		s.scene.SetSceneRect2(needlePoint.Y(), 0, heightPoint.X(), editorViewWidth)
 	}
 }
 
 func (s *stage) time() float64 {
-	needleInScene := s.MapToScene(core.NewQPoint2(needlePosition, needlePosition))
+	needleInScene := s.MapToScene(core.NewQPoint2(s.needlePosition, s.needlePosition))
 	if verticalTimeAxis {
 		return needleInScene.Y()
 	} else {
@@ -233,7 +245,7 @@ func (s *stage) time() float64 {
 }
 
 func (s *stage) setTime(t float64) {
-	s.scrollSceneToLogical(core.NewQPointF3(t, t), core.NewQPoint2(needlePosition, needlePosition))
+	s.scrollSceneToLogical(core.NewQPointF3(t, t), core.NewQPoint2(s.needlePosition, s.needlePosition))
 }
 
 func (s *stage) updateNeedleFrame() {
@@ -490,6 +502,7 @@ func (s *stage) keyPressEvent(event *gui.QKeyEvent) {
 }
 
 func (s *stage) drawForeground(painter *gui.QPainter, rect *core.QRectF) {
+	// stage.Window().DevicePixelRatioF()
 	if s.debugShowBounds && !s.selection.isEmpty() {
 		for _, item := range s.selection.elements {
 		painter.SetPen(noPen)
@@ -518,13 +531,13 @@ func (s *stage) drawForeground(painter *gui.QPainter, rect *core.QRectF) {
 	var needleStop *core.QPointF
 	var gradientStart *core.QPointF
 	if verticalTimeAxis {
-		needleStart = s.MapToScene(core.NewQPoint2(0, needlePosition))
+		needleStart = s.MapToScene(core.NewQPoint2(0, s.needlePosition))
 		needleStop = core.NewQPointF3(editorViewWidth, needleStart.Y())
-		gradientStart = s.MapToScene(core.NewQPoint2(0, needlePosition-20))
+		gradientStart = s.MapToScene(core.NewQPoint2(0, s.needlePosition-20))
 	} else {
-		needleStart = s.MapToScene(core.NewQPoint2(needlePosition, 0))
+		needleStart = s.MapToScene(core.NewQPoint2(s.needlePosition, 0))
 		needleStop = core.NewQPointF3(needleStart.X(), editorViewWidth)
-		gradientStart = s.MapToScene(core.NewQPoint2(needlePosition-20, 0))
+		gradientStart = s.MapToScene(core.NewQPoint2(s.needlePosition-20, 0))
 	}
 
 	// === draw a line at the position of the needle
