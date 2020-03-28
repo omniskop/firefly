@@ -453,7 +453,7 @@ func (s *stage) viewMouseReleaseEvent(event *gui.QMouseEvent) {
 		// get the selection box in scene coordinates
 		rect := s.MapToScene2(s.RubberBandRect()).BoundingRect()
 		// get the items that intersect with the box
-		items := s.scene.Items3(rect, core.Qt__IntersectsItemBoundingRect, core.Qt__DescendingOrder, s.Transform())
+		items := s.scene.Items3(rect, core.Qt__IntersectsItemShape, core.Qt__DescendingOrder, s.Transform())
 		if gui.QGuiApplication_KeyboardModifiers()&core.Qt__ShiftModifier == 0 {
 			s.selection.clear()
 		}
