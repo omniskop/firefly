@@ -31,9 +31,7 @@ type stage struct {
 	creationStart   vectorpath.Point
 
 	needlePosition int
-	scanner        scanner.Scanner
-	needleFrame    scanner.Frame
-	streamer       streamer.Streamer
+	needlePipeline *streamer.Pipeline
 
 	nextNonUserScrollEvents uint
 
@@ -52,13 +50,14 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 	}*/
 
 	s := stage{
-		QGraphicsView: widgets.NewQGraphicsView(nil),
-		scene:         scene,
-		projectScene:  projectScene,
-		editor:        editor,
-		duration:      duration,
-		scanner:       scanner.New(projectScene, 60),
-		streamer:      streamer.New(nil),
+		QGraphicsView:  widgets.NewQGraphicsView(nil),
+		scene:          scene,
+		projectScene:   projectScene,
+		editor:         editor,
+		duration:       duration,
+		needlePipeline: streamer.NewPipeline(scanner.New(projectScene, 60), streamer.New(udpWriter)),
+		selection:      elementList{onChange: editor.selectionChanged},
+		items:          make(map[unsafe.Pointer]*elementGraphicsItem),
 	}
 
 	s.SetObjectName("mainEditorView")
@@ -251,8 +250,7 @@ func (s *stage) setTime(t float64) {
 }
 
 func (s *stage) updateNeedleFrame() {
-	s.needleFrame = s.scanner.Scan(s.time())
-	s.streamer.Stream(s.needleFrame)
+	s.needlePipeline.Update <- s.time()
 }
 
 func (s *stage) scrollSceneToLogical(scenePoint *core.QPointF, viewportPoint *core.QPoint) {
@@ -586,9 +584,9 @@ func (s *stage) drawForeground(painter *gui.QPainter, rect *core.QRectF) {
 	// === draw preview of pixels
 	painter.SetPen(noPen)
 	//fill := gui.NewQBrush3(gui.NewQColor3(0, 0, 0, 255), core.Qt__SolidPattern)
-	pixelWidth := editorViewWidth / float64(len(s.needleFrame.Pixel))
+	pixelWidth := editorViewWidth / float64(len(s.needlePipeline.LastFrame.Pixel))
 	gradient := gui.NewQLinearGradient2(gradientStart, needleStart)
-	for i, pixel := range s.needleFrame.Pixel {
+	for i, pixel := range s.needlePipeline.LastFrame.Pixel {
 		//fill.SetColor(NewQColorFromColor(pixel))
 		//painter.SetBrush(fill)
 		gradient.SetColorAt(1, NewQColorFromColor(pixel))
