@@ -155,6 +155,15 @@ func (e *Editor) PasteAction(bool) {
 	logrus.Info("pasted elements")
 }
 
+func (e *Editor) CutAction(bool) {
+	if e.stage.selection.isEmpty() {
+		return
+	}
+	e.clipboard = e.stage.selection.copyElements()
+	e.stage.removeElements(e.stage.selection.elements)
+	logrus.Info("cut elements")
+}
+
 func (e *Editor) deleteSelectedElementAction(bool) {
 	if !e.stage.selection.isEmpty() {
 		e.stage.removeElements(e.stage.selection.elements)

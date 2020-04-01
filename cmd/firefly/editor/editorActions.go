@@ -22,6 +22,7 @@ type editorActions struct {
 
 	copy          *widgets.QAction
 	paste         *widgets.QAction
+	cut           *widgets.QAction
 	mirrorElement *widgets.QAction
 	delete        *widgets.QAction
 
@@ -59,6 +60,8 @@ func newEditorActions() *editorActions {
 	actions.copy.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Copy))
 	actions.paste = widgets.NewQAction2("Paste", nil)
 	actions.paste.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Paste))
+	actions.cut = widgets.NewQAction2("Cut", nil)
+	actions.cut.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Cut))
 	actions.mirrorElement = widgets.NewQAction2("Mirror", nil)
 	actions.mirrorElement.SetShortcut(gui.NewQKeySequence2("m", gui.QKeySequence__NativeText))
 	actions.delete = widgets.NewQAction2("Delete", nil)
@@ -86,6 +89,7 @@ func (actions *editorActions) connectToEditor(e *Editor) {
 	e.userActions.open.ConnectTriggered(e.OpenAction)
 	e.userActions.copy.ConnectTriggered(e.CopyAction)
 	e.userActions.paste.ConnectTriggered(e.PasteAction)
+	e.userActions.cut.ConnectTriggered(e.CutAction)
 	e.userActions.mirrorElement.ConnectTriggered(e.mirrorElementAction)
 	e.userActions.delete.ConnectTriggered(e.deleteSelectedElementAction)
 	e.userActions.patternGroup.ConnectTriggered(e.ToolbarPatternAction)
@@ -153,6 +157,7 @@ func (actions *editorActions) buildMenuBar() *widgets.QMenuBar {
 		actions.delete,
 		actions.copy,
 		actions.paste,
+		actions.cut,
 	})
 	editMenu.AddSeparator()
 	editMenu.AddActions([]*widgets.QAction{
