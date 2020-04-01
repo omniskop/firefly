@@ -139,14 +139,15 @@ var _ Pattern = (*LinearGradient)(nil) // make sure LinearGradient implements th
 
 // NewLinearGradient creates a new LinearGradient with the given start and stop colors
 func NewLinearGradient(a color.Color, b color.Color) *LinearGradient {
+	// we create the gradient slightly off center to not obstruct potential element handles
 	return &LinearGradient{
 		Start: GradientAnchorPoint{
 			Color: a,
-			Point: vectorpath.Point{P: 0.5, T: 0},
+			Point: vectorpath.Point{P: 0.4, T: 0},
 		},
 		Stop: GradientAnchorPoint{
 			Color: b,
-			Point: vectorpath.Point{P: 0.5, T: 1},
+			Point: vectorpath.Point{P: 0.4, T: 1},
 		},
 		Steps: nil,
 	}
