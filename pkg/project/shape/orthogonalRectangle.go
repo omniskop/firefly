@@ -80,14 +80,34 @@ func (or *OrthogonalRectangle) Path() vectorpath.Path {
 
 // Handles returns all handles for this shape that the user can then use to manipulate the shape
 func (or *OrthogonalRectangle) Handles() []vectorpath.Point {
+	top := vectorpath.Point{
+		P: or.path.Start.P + or.path.Segments[0].EndPoint().P/2,
+		T: or.path.Start.T,
+	}
 	topRight := or.path.Start.Add(or.path.Segments[0].EndPoint())
+	right := vectorpath.Point{
+		P: topRight.P,
+		T: topRight.T + or.path.Segments[1].EndPoint().T/2,
+	}
 	bottomRight := topRight.Add(or.path.Segments[1].EndPoint())
+	bottom := vectorpath.Point{
+		P: bottomRight.P + or.path.Segments[2].EndPoint().P/2,
+		T: bottomRight.T,
+	}
 	bottomLeft := bottomRight.Add(or.path.Segments[2].EndPoint())
+	left := vectorpath.Point{
+		P: bottomLeft.P,
+		T: bottomLeft.T + or.path.Segments[3].EndPoint().T/2,
+	}
 	return []vectorpath.Point{
 		or.path.Start,
 		topRight,
 		bottomRight,
 		bottomLeft,
+		top,
+		right,
+		bottom,
+		left,
 	}
 }
 
@@ -201,6 +221,68 @@ func (or *OrthogonalRectangle) SetHandle(i int, absolutePoint vectorpath.Point) 
 		or.path.Segments[3].Move(vectorpath.Point{ // top left
 			T: -difference.T,
 			P: 0,
+		})
+	case 4: // move the top handle
+		difference := absolutePoint.Sub(or.path.Start)
+		or.path.Start.T = absolutePoint.T
+
+		or.path.Segments[1].Move(vectorpath.Point{ // right
+			P: 0,
+			T: -difference.T,
+		})
+
+		or.path.Segments[3].Move(vectorpath.Point{ // left
+			P: 0,
+			T: difference.T,
+		})
+	case 5: // move the right handle
+		// absolute position of the original handle
+		absoluteHandlePos := or.path.PointAfter(1)
+
+		// difference between the handle positions
+		difference := absolutePoint.Sub(absoluteHandlePos)
+
+		or.path.Segments[0].Move(vectorpath.Point{
+			T: 0,
+			P: difference.P,
+		}) // top right
+
+		or.path.Segments[2].Move(vectorpath.Point{ // bottom left
+			T: 0,
+			P: -difference.P,
+		})
+	case 6: // move the bottom handle
+		// absolute position of the original handle
+		absoluteHandlePos := or.path.PointAfter(2)
+
+		// difference between the handle positions
+		difference := absolutePoint.Sub(absoluteHandlePos)
+
+		or.path.Segments[1].Move(vectorpath.Point{ // bottom right
+			T: difference.T,
+			P: 0,
+		})
+
+		or.path.Segments[3].Move(vectorpath.Point{ // top left
+			T: -difference.T,
+			P: 0,
+		})
+	case 7: // move the left handle
+		// absolute position of the original handle
+		absoluteHandlePos := or.path.PointAfter(3)
+
+		// difference between the handle positions
+		difference := absolutePoint.Sub(absoluteHandlePos)
+
+		or.path.Start.P = absolutePoint.P
+		or.path.Segments[0].Move(vectorpath.Point{ // top right
+			T: 0,
+			P: -difference.P,
+		})
+
+		or.path.Segments[2].Move(vectorpath.Point{ // bottom left
+			T: 0,
+			P: difference.P,
 		})
 	}
 }
