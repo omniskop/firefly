@@ -1,8 +1,12 @@
 package main
 
 import (
+	"flag"
 	"os"
 	"runtime"
+
+	"github.com/omniskop/firefly/cmd/firefly/editor"
+	"github.com/omniskop/firefly/pkg/storage"
 
 	"github.com/therecipe/qt/core"
 
@@ -20,6 +24,7 @@ func init() {
 func main() {
 	logrus.SetLevel(logrus.TraceLevel)
 	logrus.Info("FireFly starting...")
+	flag.Parse()
 	wd, _ := os.Getwd()
 	exe, _ := os.Executable()
 	logrus.WithFields(logrus.Fields{"currentPath": core.QDir_CurrentPath(), "wd": wd, "exe": exe}).Info("Directories")
@@ -28,7 +33,17 @@ func main() {
 
 	logrus.Info("Application created")
 
-	OpenLaunchwindow()
+	if fileName := flag.Arg(0); fileName != "" {
+		project, err := storage.LoadFile(fileName)
+		if err != nil {
+			logrus.Error(err)
+			return
+		}
+		edit := editor.New(project, ApplicationCallbacks)
+		edit.SaveLocation = fileName
+	} else {
+		OpenLaunchwindow()
+	}
 
 	logrus.Info("Starting Application")
 
