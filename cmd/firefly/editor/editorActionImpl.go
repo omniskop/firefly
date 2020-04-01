@@ -71,7 +71,7 @@ func (e *Editor) ToolbarColorAAction(bool) {
 		col = p.Start.Color
 	}
 
-	qcolor := widgets.QColorDialog_GetColor(NewQColorFromColor(col), e.window, "Choose Color", 0)
+	qcolor := widgets.QColorDialog_GetColor(NewQColorFromColor(col), e.window, "Choose Color", widgets.QColorDialog__ShowAlphaChannel)
 	if !qcolor.IsValid() { // user canceled dialog
 		return
 	}
@@ -103,7 +103,7 @@ func (e *Editor) ToolbarColorBAction(bool) {
 		col = p.Stop.Color
 	}
 
-	qcolor := widgets.QColorDialog_GetColor(NewQColorFromColor(col), e.window, "Choose Color", 0)
+	qcolor := widgets.QColorDialog_GetColor(NewQColorFromColor(col), e.window, "Choose Color", widgets.QColorDialog__ShowAlphaChannel)
 	if !qcolor.IsValid() { // user canceled dialog
 		return
 	}
