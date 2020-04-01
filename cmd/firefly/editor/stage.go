@@ -487,23 +487,27 @@ func (s *stage) keyPressEvent(event *gui.QKeyEvent) {
 	switch core.Qt__Key(event.Key()) {
 	case core.Qt__Key_Up:
 		change := s.MapToScene6(0, 0, pixelChange, pixelChange).BoundingRect()
-		for _, item := range s.selection.elements {
-			item.MoveBy(0, -change.Height())
+		if !s.selection.isEmpty() {
+			// we only move the first element. The others will automatically be updated too
+			s.selection.elements[0].MoveBy(0, -change.Height())
 		}
 	case core.Qt__Key_Right:
 		change := s.MapToScene6(0, 0, pixelChange, pixelChange).BoundingRect()
-		for _, item := range s.selection.elements {
-			item.MoveBy(change.Width(), 0)
+		if !s.selection.isEmpty() {
+			// we only move the first element. The others will automatically be updated too
+			s.selection.elements[0].MoveBy(change.Width(), 0)
 		}
 	case core.Qt__Key_Down:
 		change := s.MapToScene6(0, 0, pixelChange, pixelChange).BoundingRect()
-		for _, item := range s.selection.elements {
-			item.MoveBy(0, change.Height())
+		if !s.selection.isEmpty() {
+			// we only move the first element. The others will automatically be updated too
+			s.selection.elements[0].MoveBy(0, change.Height())
 		}
 	case core.Qt__Key_Left:
 		change := s.MapToScene6(0, 0, pixelChange, pixelChange).BoundingRect()
-		for _, item := range s.selection.elements {
-			item.MoveBy(-change.Width(), 0)
+		if !s.selection.isEmpty() {
+			// we only move the first element. The others will automatically be updated too
+			s.selection.elements[0].MoveBy(-change.Width(), 0)
 		}
 	default:
 		event.Ignore()
