@@ -330,8 +330,7 @@ func (s *stage) sceneMousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
 		s.creationStart = vpPoint(event.ScenePos())
 		s.selection.set(s.creationElement)
 		logrus.WithField("start", s.creationStart).Debug("a new element is being created")
-		event.Accept() // don't handle this event any further
-		s.scene.MousePressEventDefault(event)
+		// we will not call the default event handler to prevent the rubber band selection from starting
 		return
 	}
 
@@ -459,7 +458,7 @@ func (s *stage) resizeEvent(event *gui.QResizeEvent) {
 }
 
 func (s *stage) viewMouseReleaseEvent(event *gui.QMouseEvent) {
-	if !s.RubberBandRect().IsNull() {
+	if !s.RubberBandRect().IsNull() && s.creationElement == nil {
 		// get the selection box in scene coordinates
 		rect := s.MapToScene2(s.RubberBandRect()).BoundingRect()
 		// get the items that intersect with the box
