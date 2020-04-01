@@ -88,6 +88,7 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 	s.ConnectKeyPressEvent(s.keyPressEvent)
 	s.ConnectEvent(s.event)
 	s.ConnectEventFilter(s.eventFilter)
+	s.ConnectDrawBackground(s.drawBackground)
 	s.ConnectDrawForeground(s.drawForeground)
 	s.scene.ConnectChanged(s.sceneChanged)
 
@@ -127,7 +128,7 @@ func (s *stage) createElements() {
 		nil,
 	)
 	rect.SetPen(gui.NewQPen2(core.Qt__NoPen))
-	rect.SetBrush(gui.NewQBrush3(gui.NewQColor3(32, 34, 37, 255), core.Qt__SolidPattern))
+	rect.SetBrush(gui.NewQBrush2(core.Qt__NoBrush))
 	rect.ConnectMousePressEvent(func(event *widgets.QGraphicsSceneMouseEvent) {
 		if s.creationElement == nil && event.Modifiers()&core.Qt__ShiftModifier == 0 {
 			s.selection.clear()
@@ -508,6 +509,22 @@ func (s *stage) keyPressEvent(event *gui.QKeyEvent) {
 		event.Ignore()
 		s.KeyPressEventDefault(event)
 	}
+}
+
+func (s *stage) drawBackground(painter *gui.QPainter, rect *core.QRectF) {
+	painter.SetPen(noPen)
+	painter.SetBrush(gui.NewQBrush3(gui.NewQColor3(32, 34, 37, 255), core.Qt__SolidPattern))
+	painter.DrawRect(core.NewQRectF4(0, 0, editorViewWidth, s.duration))
+
+	pen := gui.NewQPen3(gui.NewQColor3(82, 84, 87, 255))
+	pen.SetCosmetic(true)
+	painter.SetPen(pen)
+	vp := s.sceneViewport()
+	painter.DrawLine(core.NewQLineF3(vp.Width()*0.25, vp.Y(), vp.Width()*0.25, vp.Bottom()))
+	painter.DrawLine(core.NewQLineF3(vp.Width()*0.75, vp.Y(), vp.Width()*0.75, vp.Bottom()))
+	painter.DrawLine(core.NewQLineF3(vp.Width()*0.333, vp.Y(), vp.Width()*0.333, vp.Bottom()))
+	painter.DrawLine(core.NewQLineF3(vp.Width()*0.666, vp.Y(), vp.Width()*0.666, vp.Bottom()))
+	painter.DrawLine(core.NewQLineF3(vp.Width()*0.5, vp.Y(), vp.Width()*0.5, vp.Bottom()))
 }
 
 func (s *stage) drawForeground(painter *gui.QPainter, rect *core.QRectF) {
