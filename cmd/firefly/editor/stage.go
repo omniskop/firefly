@@ -37,6 +37,7 @@ type stage struct {
 
 	nextNonUserScrollEvents uint
 
+	hideElements    bool
 	debugShowBounds bool
 }
 
@@ -264,6 +265,14 @@ func (s *stage) scrollSceneToLogical(scenePoint *core.QPointF, viewportPoint *co
 	} else {
 		s.HorizontalScrollBar().SetValue(int(viewPoint.X()) - viewportPoint.X())
 	}
+}
+
+func (s *stage) sceneViewport() *core.QRectF {
+	return s.MapToScene2(s.Viewport().Rect()).BoundingRect()
+}
+
+func (s *stage) redraw() {
+	s.scene.Update(s.sceneViewport())
 }
 
 func (s *stage) sceneChanged([]*core.QRectF) {
@@ -525,6 +534,12 @@ func (s *stage) drawForeground(painter *gui.QPainter, rect *core.QRectF) {
 			myBounds := item.element.Shape.Bounds()
 		painter.DrawRect(core.NewQRectF4(myBounds.Location.P, myBounds.Location.T, myBounds.Dimensions.P, myBounds.Dimensions.T))
 	}
+	}
+
+	if s.hideElements {
+		painter.SetPen(noPen)
+		painter.SetBrush(gui.NewQBrush3(gui.NewQColor3(32, 34, 37, 255), core.Qt__SolidPattern))
+		painter.DrawRect(rect)
 	}
 
 	var needleStart *core.QPointF

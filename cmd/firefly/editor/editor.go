@@ -156,6 +156,9 @@ func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
 		e.stage.scaleScene(0.9)
 	case core.Qt__Key_Plus:
 		e.stage.scaleScene(1.1)
+	case core.Qt__Key_H:
+		e.stage.hideElements = true
+		e.stage.redraw()
 	/*case core.Qt__Key_S:
 	err := storage.SaveFile("../project_save.json", e.project)
 	if err != nil {
@@ -170,6 +173,7 @@ func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
 		e.stage.setTime(t)
 	case core.Qt__Key_2:
 		e.stage.debugShowBounds = !e.stage.debugShowBounds
+		e.stage.redraw()
 	case core.Qt__Key_0:
 		e.player.(*audio.FilePlayer).SetPlaybackRate(1)
 	case core.Qt__Key_9:
@@ -180,7 +184,11 @@ func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
 }
 
 func (e *Editor) KeyReleaseEvent(event *gui.QKeyEvent) {
-
+	switch core.Qt__Key(event.Key()) {
+	case core.Qt__Key_H:
+		e.stage.hideElements = false
+		e.stage.redraw()
+	}
 }
 
 func (e *Editor) ScreenChangedEvent(screen *gui.QScreen) {
