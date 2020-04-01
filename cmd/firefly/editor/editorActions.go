@@ -25,6 +25,8 @@ type editorActions struct {
 	cut           *widgets.QAction
 	mirrorElement *widgets.QAction
 	delete        *widgets.QAction
+	moveToBottom  *widgets.QAction
+	moveToTop     *widgets.QAction
 
 	solidColor     *widgets.QAction
 	linearGradient *widgets.QAction
@@ -66,6 +68,10 @@ func newEditorActions() *editorActions {
 	actions.mirrorElement.SetShortcut(gui.NewQKeySequence2("m", gui.QKeySequence__NativeText))
 	actions.delete = widgets.NewQAction2("Delete", nil)
 	actions.delete.SetShortcuts([]*gui.QKeySequence{newQKeySequenceFromKeys(core.Qt__Key_Backspace), newQKeySequenceFromKeys(core.Qt__Key_Delete)}) // Qt__KeySequence_Backspace would not work on macOS
+	actions.moveToBottom = newQActionWithIcon("Move To Bottom", ":assets/images/toolbar move to bottom.imageset/toolbar move to bottom.png")
+	actions.moveToBottom.SetShortcut(gui.NewQKeySequence2("Shift+Ctrl+]", gui.QKeySequence__NativeText))
+	actions.moveToTop = newQActionWithIcon("Move To Top", ":assets/images/toolbar move to top.imageset/toolbar move to top.png")
+	actions.moveToTop.SetShortcut(gui.NewQKeySequence2("Shift+Ctrl+[", gui.QKeySequence__NativeText))
 
 	actions.solidColor = newCheckableQActionWithIcon("Solid Color", ":assets/images/toolbar solid color.imageset/toolbar solid color.png")
 	actions.solidColor.SetChecked(true)
@@ -92,6 +98,8 @@ func (actions *editorActions) connectToEditor(e *Editor) {
 	e.userActions.cut.ConnectTriggered(e.CutAction)
 	e.userActions.mirrorElement.ConnectTriggered(e.mirrorElementAction)
 	e.userActions.delete.ConnectTriggered(e.deleteSelectedElementAction)
+	e.userActions.moveToBottom.ConnectTriggered(e.moveToBottomAction)
+	e.userActions.moveToTop.ConnectTriggered(e.moveToTopAction)
 	e.userActions.patternGroup.ConnectTriggered(e.ToolbarPatternAction)
 	e.userActions.colorA.ConnectTriggered(e.ToolbarColorAAction)
 	e.userActions.colorB.ConnectTriggered(e.ToolbarColorBAction)
@@ -125,8 +133,8 @@ func (actions *editorActions) buildToolbar() *widgets.QToolBar {
 	})
 	bar.AddSeparator()
 	bar.AddActions([]*widgets.QAction{
-		actions.save,
-		actions.open,
+		actions.moveToTop,
+		actions.moveToBottom,
 	})
 	bar.AddSeparator()
 	bar.AddActions([]*widgets.QAction{
@@ -161,6 +169,11 @@ func (actions *editorActions) buildMenuBar() *widgets.QMenuBar {
 	})
 	editMenu.AddSeparator()
 	editMenu.AddActions([]*widgets.QAction{
+		actions.moveToTop,
+		actions.moveToBottom,
+	})
+	editMenu.AddSeparator()
+	editMenu.AddActions([]*widgets.QAction{
 		actions.mirrorElement,
 	})
 
@@ -187,10 +200,10 @@ func newQKeySequenceFromKeys(firstKey core.Qt__Key, additional ...core.Qt__Key) 
 	case 1:
 		return gui.NewQKeySequence3(int(firstKey), int(additional[0]), 0, 0)
 	case 2:
-		return gui.NewQKeySequence3(int(firstKey), int(additional[1]), int(additional[2]), 0)
+		return gui.NewQKeySequence3(int(firstKey), int(additional[0]), int(additional[1]), 0)
 	case 3:
 		fallthrough
 	default:
-		return gui.NewQKeySequence3(int(firstKey), int(additional[1]), int(additional[2]), int(additional[3]))
+		return gui.NewQKeySequence3(int(firstKey), int(additional[0]), int(additional[1]), int(additional[2]))
 	}
 }

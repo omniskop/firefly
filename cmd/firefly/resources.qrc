@@ -14,5 +14,7 @@
     <file>assets/images/toolbar open.imageset</file>
     <file>assets/images/toolbar save.imageset</file>
     <file>assets/images/toolbar solid color.imageset</file>
+    <file>assets/images/toolbar move to bottom.imageset</file>
+    <file>assets/images/toolbar move to top.imageset</file>
 </qresource>
 </RCC>

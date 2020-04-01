@@ -1,6 +1,7 @@
 package editor
 
 import (
+	"fmt"
 	"image/color"
 
 	"github.com/therecipe/qt/core"
@@ -53,4 +54,8 @@ func NewQBrushFromPattern(pat project.Pattern) *gui.QBrush {
 	default:
 		return gui.NewQBrush3(gui.NewQColor3(240, 107, 255, 255), core.Qt__SolidPattern)
 	}
+}
+
+func fmtQRectF(rect *core.QRectF) string {
+	return fmt.Sprintf("{X:%f Y:%f W:%f H:%f}", rect.X(), rect.Y(), rect.Width(), rect.Height())
 }

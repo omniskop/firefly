@@ -150,6 +150,7 @@ func (e *Editor) PasteAction(bool) {
 		origin.T = e.Time() + (origin.T - earliestPosition)
 		//origin.T = e.Time()
 		element.Shape.SetOrigin(origin)
+		element.ZIndex += zIndexSteps // increase ZIndex by one step
 		e.stage.selection.add(e.stage.addElement(element))
 	}
 	logrus.Info("pasted elements")
@@ -167,6 +168,80 @@ func (e *Editor) CutAction(bool) {
 func (e *Editor) deleteSelectedElementAction(bool) {
 	if !e.stage.selection.isEmpty() {
 		e.stage.removeElements(e.stage.selection.elements)
+	}
+}
+
+func (e *Editor) moveToBottomAction(bool) {
+	if e.stage.selection.isEmpty() {
+		return
+	}
+	bounds := e.stage.selection.bounds()
+	items := e.stage.getItems(bounds)
+
+	// We will search for the highest ZIndex of any element that is in the selection
+	// and the lowest ZIndex of all elements that are not selected.
+	// Because all elements that are selected will automatically be in the found items
+	// we will figure out both values in one go.
+	lowestZIndex := math.Inf(1)   // lowest ZIndex of not selected elements
+	highestZIndex := math.Inf(-1) // highest ZIndex of selected elements
+
+	for _, item := range items {
+		if e.stage.selection.contains(item) {
+			if item.element.ZIndex > highestZIndex {
+				highestZIndex = item.element.ZIndex
+			}
+		} else if item.element.ZIndex < lowestZIndex {
+			lowestZIndex = item.element.ZIndex
+		}
+	}
+	if lowestZIndex == math.Inf(1) || highestZIndex == math.Inf(-1) {
+		// no elements in the bounds
+		return
+	}
+
+	logrus.WithFields(logrus.Fields{"background lowest": lowestZIndex, "selection highest": highestZIndex}).Info("move selection to bottom")
+
+	for _, item := range e.stage.selection.elements {
+		diff := highestZIndex - item.element.ZIndex
+		item.element.ZIndex = (lowestZIndex - diff) - zIndexSteps
+		item.SetZValue(item.element.ZIndex)
+	}
+}
+
+func (e *Editor) moveToTopAction(bool) {
+	if e.stage.selection.isEmpty() {
+		return
+	}
+	bounds := e.stage.selection.bounds()
+	items := e.stage.getItems(bounds)
+
+	// We will search for the lowest ZIndex of any element that is in the selection
+	// and the highest ZIndex of all elements that are not selected.
+	// Because all elements that are selected will automatically be in the found items
+	// we will figure out both values in one go.
+	lowestZIndex := math.Inf(1)   // lowest ZIndex of selected elements
+	highestZIndex := math.Inf(-1) // highest ZIndex of not selected elements
+
+	for _, item := range items {
+		if e.stage.selection.contains(item) {
+			if item.element.ZIndex < lowestZIndex {
+				lowestZIndex = item.element.ZIndex
+			}
+		} else if item.element.ZIndex > highestZIndex {
+			highestZIndex = item.element.ZIndex
+		}
+	}
+	if lowestZIndex == math.Inf(1) || highestZIndex == math.Inf(-1) {
+		// no elements in the bounds
+		return
+	}
+
+	logrus.WithFields(logrus.Fields{"selection lowest": lowestZIndex, "background highest": highestZIndex}).Info("move selection to bottom")
+
+	for _, item := range e.stage.selection.elements {
+		diff := item.element.ZIndex - lowestZIndex
+		item.element.ZIndex = (highestZIndex + diff) + zIndexSteps
+		item.SetZValue(item.element.ZIndex)
 	}
 }
 

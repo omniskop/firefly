@@ -3,6 +3,7 @@ package editor
 import (
 	"github.com/omniskop/firefly/pkg/project"
 	"github.com/sirupsen/logrus"
+	"github.com/therecipe/qt/core"
 )
 
 const logSelectionChanges bool = false
@@ -34,6 +35,16 @@ func (s elementList) copyElements() []*project.Element {
 		out[i] = item.element.Copy()
 	}
 	return out
+}
+
+func (s elementList) bounds() *core.QRectF {
+	// unification of a rect with a null rect returns the rect unaltered
+	bounds := core.NewQRectF()
+	for _, item := range s.elements {
+		// BoundingRect() does not have a position
+		bounds = item.BoundingRect().Translated2(item.Pos()).United(bounds)
+	}
+	return bounds
 }
 
 func (s *elementList) removeIfFound(searched *elementGraphicsItem) {

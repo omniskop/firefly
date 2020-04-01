@@ -174,6 +174,9 @@ func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
 	case core.Qt__Key_2:
 		e.stage.debugShowBounds = !e.stage.debugShowBounds
 		e.stage.redraw()
+	case core.Qt__Key_3:
+		e.stage.debugShowZIndex = !e.stage.debugShowZIndex
+		e.stage.redraw()
 	case core.Qt__Key_0:
 		e.player.(*audio.FilePlayer).SetPlaybackRate(1)
 	case core.Qt__Key_9:

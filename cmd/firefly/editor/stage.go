@@ -18,6 +18,8 @@ import (
 	"github.com/therecipe/qt/widgets"
 )
 
+const zIndexSteps = 0.1
+
 type stage struct {
 	*widgets.QGraphicsView
 	scene        *widgets.QGraphicsScene
@@ -29,6 +31,7 @@ type stage struct {
 
 	creationElement *elementGraphicsItem
 	creationStart   vectorpath.Point
+	newZIndex       float64
 
 	needlePosition int
 	needlePipeline *streamer.Pipeline
@@ -37,6 +40,7 @@ type stage struct {
 
 	hideElements    bool
 	debugShowBounds bool
+	debugShowZIndex bool
 }
 
 func newStage(editor *Editor, projectScene *project.Scene, duration float64) *stage {
@@ -303,6 +307,18 @@ func (s *stage) elementHasBeenClicked(item *elementGraphicsItem, event *widgets.
 	}
 }
 
+func (s *stage) getItems(rect *core.QRectF) []*elementGraphicsItem {
+	items := s.scene.Items3(rect, core.Qt__IntersectsItemShape, core.Qt__DescendingOrder, s.Transform())
+	var out = make([]*elementGraphicsItem, 0, len(items))
+	for _, item := range items {
+		if elementItem, ok := s.items[item.Pointer()]; ok {
+			out = append(out, elementItem)
+		}
+		// not all graphicsItems are in the map
+	}
+	return out
+}
+
 func (s *stage) sceneMousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
 	// The builtin selection mechanism has some unwanted side effects that resulted in the need to implement my own.
 	// The items themselves will know when they get clicked but I don't know when the user clicks on the background.
@@ -319,10 +335,11 @@ func (s *stage) sceneMousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
 			elementColor = s.selection.elements[0].element.Pattern.Copy()
 		}
 		s.creationElement = newElementGraphicsItem(s, &project.Element{
-			ZIndex:  0,
+			ZIndex:  s.newZIndex,
 			Shape:   s.editor.userActions.getSelectedShape(),
 			Pattern: elementColor,
 		})
+		s.newZIndex += zIndexSteps
 		s.items[s.creationElement.Pointer()] = s.creationElement
 		s.scene.AddItem(s.creationElement)
 		s.creationStart = vpPoint(event.ScenePos())
@@ -460,15 +477,12 @@ func (s *stage) viewMouseReleaseEvent(event *gui.QMouseEvent) {
 		// get the selection box in scene coordinates
 		rect := s.MapToScene2(s.RubberBandRect()).BoundingRect()
 		// get the items that intersect with the box
-		items := s.scene.Items3(rect, core.Qt__IntersectsItemShape, core.Qt__DescendingOrder, s.Transform())
+		items := s.getItems(rect)
 		if gui.QGuiApplication_KeyboardModifiers()&core.Qt__ShiftModifier == 0 {
 			s.selection.clear()
 		}
 		for _, item := range items {
-			if elementItem, ok := s.items[item.Pointer()]; ok {
-				// find the corresponding elementGraphicsItem from the generic QGraphicsItem
-				s.selection.add(elementItem)
-			}
+			s.selection.add(item)
 		}
 	}
 
@@ -552,6 +566,13 @@ func (s *stage) drawForeground(painter *gui.QPainter, rect *core.QRectF) {
 			myBounds := item.element.Shape.Bounds()
 		painter.DrawRect(core.NewQRectF4(myBounds.Location.P, myBounds.Location.T, myBounds.Dimensions.P, myBounds.Dimensions.T))
 	}
+	}
+	if s.debugShowZIndex && !s.selection.isEmpty() {
+		painter.SetPen(noPen)
+		painter.SetBrush(gui.NewQBrush3(gui.NewQColor3(0, 0, 0, 255), core.Qt__SolidPattern))
+		for _, item := range s.selection.elements {
+			painter.DrawRect(core.NewQRectF4(item.X()+0.02*item.element.ZIndex*10, item.Y(), 0.02, 0.5))
+		}
 	}
 
 	if s.hideElements {
