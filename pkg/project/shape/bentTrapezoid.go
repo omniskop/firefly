@@ -221,6 +221,14 @@ func (b *BentTrapezoid) SetHandle(index int, absolutePoint vectorpath.Point) {
 }
 
 func (b *BentTrapezoid) SetCreationBounds(origin vectorpath.Point, size vectorpath.Point) {
+	if size.P < 0 {
+		origin.P += size.P
+		size.P = -size.P
+	}
+	if size.T < 0 {
+		origin.T += size.T
+		size.T = -size.T
+	}
 	b.position = origin
 	b.topWidth = size.P
 	b.bottomWidth = size.P

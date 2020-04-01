@@ -288,6 +288,14 @@ func (or *OrthogonalRectangle) SetHandle(i int, absolutePoint vectorpath.Point) 
 }
 
 func (or *OrthogonalRectangle) SetCreationBounds(origin vectorpath.Point, size vectorpath.Point) {
+	if size.P < 0 {
+		origin.P += size.P
+		size.P = -size.P
+	}
+	if size.T < 0 {
+		origin.T += size.T
+		size.T = -size.T
+	}
 	or.path.Start = origin
 	or.SetHandle(2, origin.Add(size))
 }
