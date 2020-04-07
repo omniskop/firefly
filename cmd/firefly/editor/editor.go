@@ -34,7 +34,7 @@ type Editor struct {
 func New(proj *project.Project, applicationCallbacks map[string]func()) *Editor {
 	window := widgets.NewQMainWindow(nil, 0)
 	window.SetMinimumSize2(300, 200)
-	window.SetWindowTitle("FireFly Editor")
+	window.SetWindowTitle("Firefly Editor")
 
 	player, err := audio.Open(proj.Audio)
 	if err != nil {
@@ -74,6 +74,12 @@ func New(proj *project.Project, applicationCallbacks map[string]func()) *Editor 
 	edit.stage.updateNeedlePosition() // this needs to be called after the window is shown
 	edit.updateTimer.ConnectTimeout(edit.UpdateTick)
 	edit.updateTimer.Start2()
+
+	size := gui.QGuiApplication_PrimaryScreen().AvailableSize()
+	size.SetWidth(int(float64(size.Width()) * 0.6))
+	size.SetHeight(int(float64(size.Height()) * 0.8))
+	window.SetGeometry(widgets.QStyle_AlignedRect(core.Qt__LeftToRight, core.Qt__AlignCenter, size, gui.QGuiApplication_PrimaryScreen().AvailableGeometry()))
+	window.Resize(size)
 
 	return edit
 }

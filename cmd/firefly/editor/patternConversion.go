@@ -56,6 +56,10 @@ func NewQBrushFromPattern(pat project.Pattern) *gui.QBrush {
 	}
 }
 
+func NewQBrushFromRGBA(r, g, b, a int) *gui.QBrush {
+	return gui.NewQBrush3(gui.NewQColor3(r, g, b, a), core.Qt__SolidPattern)
+}
+
 func fmtQRectF(rect *core.QRectF) string {
 	return fmt.Sprintf("{X:%f Y:%f W:%f H:%f}", rect.X(), rect.Y(), rect.Width(), rect.Height())
 }
