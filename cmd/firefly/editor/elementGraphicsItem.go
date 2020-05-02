@@ -38,6 +38,7 @@ func newElementGraphicsItem(parentStage *stage, element *project.Element) *eleme
 		parent:            parentStage,
 	}
 	item.SetPos(qtPoint(element.Shape.Origin()))
+	item.SetZValue(element.ZIndex)
 	item.updatePattern()
 	item.SetPen(noPen)
 	item.SetFlags(widgets.QGraphicsItem__ItemSendsScenePositionChanges | widgets.QGraphicsItem__ItemIsMovable)
@@ -51,6 +52,7 @@ func (item *elementGraphicsItem) updatePath() {
 	item.PrepareGeometryChange()
 	item.SetPos(qtPoint(item.element.Shape.Origin()))
 	item.SetPath(pathFromElement(item.element))
+	item.SetZValue(item.element.ZIndex)
 	item.updateHandles(-1)
 }
 
