@@ -3,7 +3,6 @@ package editor
 import (
 	"reflect"
 
-	"github.com/omniskop/firefly/cmd/firefly/audio"
 	"github.com/omniskop/firefly/pkg/project"
 	"github.com/sirupsen/logrus"
 	"github.com/therecipe/qt/core"
@@ -21,9 +20,8 @@ type Editor struct {
 	window               *widgets.QMainWindow
 	project              *project.Project
 	stage                *stage
-	player               audio.Player
+	player               *audioPlayer
 	playing              bool
-	updateTimer          *core.QTimer
 	userActions          *editorActions
 
 	clipboard []*project.Element
@@ -36,14 +34,11 @@ func New(proj *project.Project, applicationCallbacks map[string]func()) *Editor 
 	window.SetMinimumSize2(300, 200)
 	window.SetWindowTitle("Firefly Editor")
 
-	player, err := audio.Open(proj.Audio)
+	audioPath, err := LocateAudioFile(proj.Audio)
 	if err != nil {
 		logrus.Error(err)
 	}
-
-	// Setup update loop
-	timer := core.NewQTimer(window)
-	timer.SetInterval(1000 / 60)
+	player := NewAudioPlayer(audioPath)
 
 	edit := &Editor{
 		applicationCallbacks: applicationCallbacks,
@@ -52,7 +47,6 @@ func New(proj *project.Project, applicationCallbacks map[string]func()) *Editor 
 		stage:                nil,
 		player:               player,
 		playing:              false,
-		updateTimer:          timer,
 		userActions:          newEditorActions(),
 	}
 	edit.userActions.connectToEditor(edit)
@@ -72,8 +66,7 @@ func New(proj *project.Project, applicationCallbacks map[string]func()) *Editor 
 	window.Show()
 	gui.NewQWindowFromPointer(window.WindowHandle().Pointer()).ConnectScreenChanged(edit.ScreenChangedEvent)
 	edit.stage.updateNeedlePosition() // this needs to be called after the window is shown
-	edit.updateTimer.ConnectTimeout(edit.UpdateTick)
-	edit.updateTimer.Start2()
+	player.onTimeChanged(edit.stage.setTime)
 
 	size := gui.QGuiApplication_PrimaryScreen().AvailableSize()
 	size.SetWidth(int(float64(size.Width()) * 0.6))
@@ -84,26 +77,18 @@ func New(proj *project.Project, applicationCallbacks map[string]func()) *Editor 
 	return edit
 }
 
-func (e *Editor) UpdateTick() {
-	if e.playing {
-		audioTime := e.player.Time()
-		// fmt.Println("audio time: ", audioTime)
-		e.stage.setTime(audioTime)
-	}
-}
-
 func (e *Editor) UpdateScrollPosition(float64) {
 
 }
 
 func (e *Editor) Time() float64 {
 	// TODO: implement AudioOffset
-	return e.player.Time()
+	return e.player.time()
 }
 
 func (e *Editor) SetTime(t float64) {
 	// TODO: implement AudioOffset
-	e.player.SetTime(t)
+	e.player.setTime(t)
 	//e.stage.setTime(t)
 }
 
@@ -153,10 +138,10 @@ func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
 		logrus.Info("Play/Pause")
 		if e.playing {
 			e.playing = false
-			e.player.Pause()
+			e.player.pause()
 		} else {
 			e.playing = true
-			e.player.Play()
+			e.player.play()
 		}
 	case core.Qt__Key_Minus:
 		e.stage.scaleScene(0.9)
@@ -175,7 +160,7 @@ func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
 	*/
 	case core.Qt__Key_1:
 		t := e.stage.time()
-		logrus.Debug("time is ", t, " ", e.player.Time())
+		logrus.Debug("time is ", t, " ", e.player.time())
 		e.stage.setTime(t)
 	case core.Qt__Key_2:
 		e.stage.debugShowBounds = !e.stage.debugShowBounds
@@ -184,11 +169,11 @@ func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
 		e.stage.debugShowZIndex = !e.stage.debugShowZIndex
 		e.stage.redraw()
 	case core.Qt__Key_0:
-		e.player.(*audio.FilePlayer).SetPlaybackRate(1)
+		e.player.SetPlaybackRate(1)
 	case core.Qt__Key_9:
-		e.player.(*audio.FilePlayer).SetPlaybackRate(0.5)
+		e.player.SetPlaybackRate(0.5)
 	case core.Qt__Key_8:
-		e.player.(*audio.FilePlayer).SetPlaybackRate(0.25)
+		e.player.SetPlaybackRate(0.25)
 	}
 }
 

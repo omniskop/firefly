@@ -294,10 +294,11 @@ func (s *stage) time() float64 {
 
 func (s *stage) setTime(t float64) {
 	s.scrollSceneToLogical(core.NewQPointF3(t, t), core.NewQPoint2(s.needlePosition, s.needlePosition))
+	s.updateNeedleFrame()
 }
 
 func (s *stage) updateNeedleFrame() {
-	s.needlePipeline.Update <- s.time()
+	s.needlePipeline.Update <- s.editor.player.time()
 }
 
 func (s *stage) scrollSceneToLogical(scenePoint *core.QPointF, viewportPoint *core.QPoint) {
@@ -553,7 +554,10 @@ func (s *stage) scrollContentsByEvent(dx int, dy int) {
 	if dy == 0 {
 		return
 	}
+	if !s.editor.playing {
+		// during playback the needle frame will be updated through setTime
 	s.updateNeedleFrame()
+	}
 
 	if s.nextNonUserScrollEvents == 0 {
 		// do not update the time of the editor because it probably was the editor itself who triggered

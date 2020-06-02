@@ -36,7 +36,7 @@ func (p *fileProvider) CanProvide(audio project.Audio) bool {
 	audio.Author = strings.ToLower(audio.Author)
 
 	for _, file := range files {
-		name := strings.ToLower(file.info.Name())
+		name := strings.ToLower(file.Info.Name())
 		if strings.Contains(name, audio.Title) && strings.Contains(name, audio.Author) {
 			return true
 		}
@@ -55,17 +55,17 @@ func (p *fileProvider) Provide(audio project.Audio) (Player, bool) {
 	audio.Author = strings.ToLower(audio.Author)
 
 	for _, file := range files {
-		name := strings.ToLower(file.info.Name())
+		name := strings.ToLower(file.Info.Name())
 		if strings.Contains(name, audio.Title) && strings.Contains(name, audio.Author) {
-			return NewFilePlayer(file.path), true
+			return NewFilePlayer(file.Path), true
 		}
 	}
 	return nil, false
 }
 
 type potentialFile struct {
-	path string
-	info os.FileInfo
+	Path string
+	Info os.FileInfo
 }
 
 func GetFiles(basepath string) ([]potentialFile, []error) {
@@ -80,8 +80,8 @@ func GetFiles(basepath string) ([]potentialFile, []error) {
 			}
 		} else if !info.IsDir() {
 			files = append(files, potentialFile{
-				path: path,
-				info: info,
+				Path: path,
+				Info: info,
 			})
 		}
 		return nil
