@@ -5,6 +5,8 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/omniskop/firefly/cmd/firefly/settings"
+
 	"github.com/omniskop/firefly/cmd/firefly/editor"
 	"github.com/omniskop/firefly/pkg/storage"
 
@@ -29,6 +31,8 @@ func main() {
 	exe, _ := os.Executable()
 	logrus.WithFields(logrus.Fields{"currentPath": core.QDir_CurrentPath(), "wd": wd, "exe": exe}).Info("Directories")
 
+	versionCheck()
+
 	app = createApplication()
 
 	logrus.Info("Application created")
@@ -48,4 +52,18 @@ func main() {
 	logrus.Info("Starting Application")
 
 	app.Exec()
+}
+
+func versionCheck() {
+	version := settings.GetString("version")
+
+	switch version {
+	case "": // new installation
+		restoreDefaultSettings()
+		logrus.Info("new installation: settings have been reset")
+	case "0.1.0":
+		return
+	}
+
+	settings.Set("version", "0.1.0")
 }

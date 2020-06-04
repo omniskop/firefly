@@ -34,6 +34,7 @@ func NewLaunchWindow() (*widgets.QWidget, error) {
 
 	newProjectButton := widgets.NewQPushButtonFromPointer(formWidget.FindChild("newProjectButton", core.Qt__FindChildrenRecursively).Pointer())
 	openProjectButton := widgets.NewQPushButtonFromPointer(formWidget.FindChild("openProjectButton", core.Qt__FindChildrenRecursively).Pointer())
+	settingsButton := widgets.NewQPushButtonFromPointer(formWidget.FindChild("settingsButton", core.Qt__FindChildrenRecursively).Pointer())
 	projectList := widgets.NewQListWidgetFromPointer(formWidget.FindChild("projectList", core.Qt__FindChildrenRecursively).Pointer())
 
 	newProjectButton.ConnectClicked(func(bool) {
@@ -61,6 +62,14 @@ func NewLaunchWindow() (*widgets.QWidget, error) {
 			return
 		}
 		launchWindow.Hide()
+	})
+
+	settingsButton.ConnectClicked(func(bool) {
+		_, err := NewAppSettingsWindow(formWidget)
+		if err != nil {
+			logrus.WithField("err", err).Error("unable to create app settings window")
+			return
+		}
 	})
 
 	projectList.AddItem("No Recent Projects")

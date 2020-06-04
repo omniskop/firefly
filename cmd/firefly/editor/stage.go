@@ -3,8 +3,13 @@ package editor
 import (
 	"fmt"
 	"image/color"
+	"io"
+	"net"
 	"runtime"
+	"strconv"
 	"unsafe"
+
+	"github.com/omniskop/firefly/cmd/firefly/settings"
 
 	"github.com/omniskop/firefly/pkg/project"
 	"github.com/omniskop/firefly/pkg/project/vectorpath"
@@ -49,10 +54,25 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 	scene.SetSceneRect2(0, 0, editorViewWidth, duration)
 	scene.SetBackgroundBrush(gui.NewQBrush3(gui.NewQColor3(14, 15, 16, 255), core.Qt__SolidPattern))
 
-	/*udpWriter, err := streamer.NewUDPWriter("192.168.178.35:20202")
-	if err != nil {
-		logrus.Error(err)
-	}*/
+	var streamerWriter io.Writer
+	if settings.GetBool("liveLedStrip/enabled") {
+		address := settings.GetString("liveLedStrip/address")
+		port := settings.GetInt("liveLedStrip/port")
+		if address != "" && port != 0 {
+			var err error
+			streamerWriter, err = streamer.NewUDPWriter(net.JoinHostPort(settings.GetString("liveLedStrip/address"), strconv.Itoa(settings.GetInt("liveLedStrip/port"))))
+			if err != nil {
+				logrus.Error(err)
+				streamerWriter = nil
+			}
+		}
+	}
+
+	ledCount := settings.GetInt("ledCount")
+	if ledCount == 0 {
+		logrus.Warnf("setting 'ledCount' is not set")
+		ledCount = 30
+	}
 
 	s := stage{
 		QGraphicsView: widgets.NewQGraphicsView(nil),
@@ -60,14 +80,15 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 		projectScene:  projectScene,
 		editor:        editor,
 		duration:      duration,
-		needlePipeline: streamer.NewPipeline(scanner.New(projectScene, 60), streamer.New(nil)),
-		selection:      elementList{onChange: editor.selectionChanged},
-		items:          make(map[unsafe.Pointer]*elementGraphicsItem),
+		needlePipeline: streamer.NewPipeline(scanner.New(projectScene, ledCount), streamer.New(streamerWriter)),
+		selection: elementList{onChange: editor.selectionChanged},
+		items:     make(map[unsafe.Pointer]*elementGraphicsItem),
 	}
 
 	s.SetObjectName("mainEditorView")
 	s.SetScene(scene)
 	s.createElements()
+	//s.SetViewport(widgets.NewQOpenGLWidget(nil, 0))
 	s.SetRenderHints(gui.QPainter__Antialiasing | gui.QPainter__HighQualityAntialiasing | gui.QPainter__SmoothPixmapTransform)
 	// the default viewport-update-mode caused graphical glitches with the macOS scroll bar
 	// TODO: check if this is still the case
@@ -156,7 +177,7 @@ func (s *stage) addElements(elements []*project.Element) []*elementGraphicsItem 
 		out[i] = s.addElement(element)
 	}
 	return out
-	}
+}
 
 func (s *stage) removeElement(item *elementGraphicsItem) {
 	s.selection.removeIfFound(item)
@@ -556,7 +577,7 @@ func (s *stage) scrollContentsByEvent(dx int, dy int) {
 	}
 	if !s.editor.playing {
 		// during playback the needle frame will be updated through setTime
-	s.updateNeedleFrame()
+		s.updateNeedleFrame()
 	}
 
 	if s.nextNonUserScrollEvents == 0 {
@@ -672,26 +693,26 @@ func (s *stage) drawForeground(painter *gui.QPainter, rect *core.QRectF) {
 	// === draw the bounding boxes of the selected elements
 	if s.debugShowBounds && !s.selection.isEmpty() {
 		for _, item := range s.selection.elements {
-		painter.SetPen(noPen)
-		painter.SetBrush(gui.NewQBrush3(gui.NewQColor3(0, 0, 255, 100), core.Qt__SolidPattern))
+			painter.SetPen(noPen)
+			painter.SetBrush(gui.NewQBrush3(gui.NewQColor3(0, 0, 255, 100), core.Qt__SolidPattern))
 			bounds := item.BoundingRect()
 			bounds.Translate2(item.Pos())
-		painter.DrawRect(bounds)
+			painter.DrawRect(bounds)
 
-		pen := gui.NewQPen4(
-			gui.NewQBrush3(gui.NewQColor3(0, 255, 255, 255), core.Qt__SolidPattern),
-			0,
-			core.Qt__SolidLine,
-			core.Qt__FlatCap,
-			core.Qt__BevelJoin,
-		)
-		pen.SetCosmetic(true)
-		painter.SetPen(pen)
-		painter.SetBrush(gui.NewQBrush3(gui.NewQColor3(0, 0, 0, 0), core.Qt__SolidPattern))
+			pen := gui.NewQPen4(
+				gui.NewQBrush3(gui.NewQColor3(0, 255, 255, 255), core.Qt__SolidPattern),
+				0,
+				core.Qt__SolidLine,
+				core.Qt__FlatCap,
+				core.Qt__BevelJoin,
+			)
+			pen.SetCosmetic(true)
+			painter.SetPen(pen)
+			painter.SetBrush(gui.NewQBrush3(gui.NewQColor3(0, 0, 0, 0), core.Qt__SolidPattern))
 
 			myBounds := item.element.Shape.Bounds()
-		painter.DrawRect(core.NewQRectF4(myBounds.Location.P, myBounds.Location.T, myBounds.Dimensions.P, myBounds.Dimensions.T))
-	}
+			painter.DrawRect(core.NewQRectF4(myBounds.Location.P, myBounds.Location.T, myBounds.Dimensions.P, myBounds.Dimensions.T))
+		}
 	}
 
 	// === draw ZIndex indicators of selected elements
