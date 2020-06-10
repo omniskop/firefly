@@ -4,6 +4,7 @@ package streamer
 
 import (
 	"io"
+	"math"
 
 	"github.com/sirupsen/logrus"
 
@@ -12,11 +13,13 @@ import (
 
 type Streamer struct {
 	destination io.Writer
+	gamma       float64
 }
 
 func New(dst io.Writer) Streamer {
 	return Streamer{
 		destination: dst,
+		gamma:       2.2,
 	}
 }
 
@@ -28,9 +31,10 @@ func (s Streamer) Stream(frame scanner.Frame) {
 	data[0] = 0
 	for i, pixel := range frame.Pixel {
 		r, g, b, _ := pixel.RGBA()
-		data[i*3+1] = byte(r / 257)
-		data[i*3+2] = byte(g / 257)
-		data[i*3+3] = byte(b / 257)
+		// map from 0xffff to 0xff and apply gamma correction
+		data[i*3+1] = byte(math.Pow(float64(r)/0xffff, s.gamma) * 0xff)
+		data[i*3+2] = byte(math.Pow(float64(g)/0xffff, s.gamma) * 0xff)
+		data[i*3+3] = byte(math.Pow(float64(b)/0xffff, s.gamma) * 0xff)
 	}
 	_, err := s.destination.Write(data)
 	if err != nil {
