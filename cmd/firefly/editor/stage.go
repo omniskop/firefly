@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 	"io"
+	"math"
 	"net"
 	"runtime"
 	"strconv"
@@ -75,14 +76,14 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 	}
 
 	s := stage{
-		QGraphicsView: widgets.NewQGraphicsView(nil),
-		scene:         scene,
-		projectScene:  projectScene,
-		editor:        editor,
-		duration:      duration,
+		QGraphicsView:  widgets.NewQGraphicsView(nil),
+		scene:          scene,
+		projectScene:   projectScene,
+		editor:         editor,
+		duration:       duration,
 		needlePipeline: streamer.NewPipeline(scanner.New(projectScene, ledCount), streamer.New(streamerWriter)),
-		selection: elementList{onChange: editor.selectionChanged},
-		items:     make(map[unsafe.Pointer]*elementGraphicsItem),
+		selection:      elementList{onChange: editor.selectionChanged},
+		items:          make(map[unsafe.Pointer]*elementGraphicsItem),
 	}
 
 	s.SetObjectName("mainEditorView")
@@ -144,6 +145,7 @@ func (s *stage) createElements() {
 		}
 		event.Ignore() // ignore this event so that the qt selection can start on this element
 	})
+	rect.SetZValue(math.Inf(-1)) // put this element as far back as possible
 	s.scene.AddItem(rect)
 
 	titleContainer := s.scene.AddRect2(0, 0, 100, -30, noPen, gui.NewQBrush3(gui.NewQColor(), core.Qt__NoBrush))
