@@ -33,6 +33,8 @@ type editorActions struct {
 	patternGroup   *widgets.QActionGroup
 	colorA         *widgets.QAction
 	colorB         *widgets.QAction
+
+	openLogConsole *widgets.QAction
 }
 
 func newEditorActions() *editorActions {
@@ -83,6 +85,8 @@ func newEditorActions() *editorActions {
 	actions.colorB = newQActionWithIcon("Choose Second Color", ":assets/images/toolbar colorpicker.imageset/toolbar colorpicker.png")
 	actions.colorB.SetDisabled(true)
 
+	actions.openLogConsole = widgets.NewQAction2("Console", nil)
+
 	return actions
 }
 
@@ -103,6 +107,9 @@ func (actions *editorActions) connectToEditor(e *Editor) {
 	e.userActions.patternGroup.ConnectTriggered(e.ToolbarPatternAction)
 	e.userActions.colorA.ConnectTriggered(e.ToolbarColorAAction)
 	e.userActions.colorB.ConnectTriggered(e.ToolbarColorBAction)
+	e.userActions.openLogConsole.ConnectTriggered(func(checked bool) {
+		e.applicationCallbacks["openLogConsole"]()
+	})
 }
 
 func (actions *editorActions) getSelectedShape() shape.Shape {
@@ -175,6 +182,10 @@ func (actions *editorActions) buildMenuBar() *widgets.QMenuBar {
 	editMenu.AddSeparator()
 	editMenu.AddActions([]*widgets.QAction{
 		actions.mirrorElement,
+	})
+	helpMenu := menubar.AddMenu2("Help")
+	helpMenu.AddActions([]*widgets.QAction{
+		actions.openLogConsole,
 	})
 
 	return menubar

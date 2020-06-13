@@ -24,6 +24,7 @@ func init() {
 }
 
 func main() {
+	logrus.AddHook(&logConsoleReceiver)
 	logrus.SetLevel(logrus.TraceLevel)
 	logrus.Info("FireFly starting...")
 	flag.Parse()

@@ -28,10 +28,12 @@ func createApplication() *widgets.QApplication {
 var ApplicationCallbacks map[string]func()
 
 func init() {
+	// building ApplicationCallbacks here prevents an initialization loop
 	ApplicationCallbacks = map[string]func(){
 		"open": func() {
 			_ = openProject()
 		},
+		"openLogConsole": NewLogConsoleWindow,
 	}
 }
 

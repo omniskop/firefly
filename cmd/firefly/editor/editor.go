@@ -1,6 +1,7 @@
 package editor
 
 import (
+	"math"
 	"reflect"
 
 	"github.com/omniskop/firefly/pkg/project"
@@ -168,6 +169,16 @@ func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
 	case core.Qt__Key_3:
 		e.stage.debugShowZIndex = !e.stage.debugShowZIndex
 		e.stage.redraw()
+	case core.Qt__Key_4:
+		pixel := e.stage.needlePipeline.LastFrame.Pixel
+		c := pixel[len(pixel)/2]
+		r, g, b, a := c.RGBA()
+		logrus.Debugf("direct: %d %d %d %d | gamma: %.f %.f %.f %.f",
+			r/257, g/257, b/257, a/257,
+			math.Pow(float64(r)/0xffff, 2.2)*255,
+			math.Pow(float64(g)/0xffff, 2.2)*255,
+			math.Pow(float64(b)/0xffff, 2.2)*255,
+			math.Pow(float64(a)/0xffff, 2.2)*255)
 	case core.Qt__Key_0:
 		e.player.SetPlaybackRate(1)
 	case core.Qt__Key_9:
