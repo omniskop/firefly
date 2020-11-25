@@ -67,7 +67,7 @@ func newEditorActions() *editorActions {
 	actions.cut = widgets.NewQAction2("Cut", nil)
 	actions.cut.SetShortcut(gui.NewQKeySequence5(gui.QKeySequence__Cut))
 	actions.mirrorElement = widgets.NewQAction2("Mirror", nil)
-	actions.mirrorElement.SetShortcut(gui.NewQKeySequence2("m", gui.QKeySequence__NativeText))
+	actions.mirrorElement.SetShortcuts([]*gui.QKeySequence{gui.NewQKeySequence2("m", gui.QKeySequence__NativeText), gui.NewQKeySequence2("Alt+m", gui.QKeySequence__NativeText)})
 	actions.delete = widgets.NewQAction2("Delete", nil)
 	actions.delete.SetShortcuts([]*gui.QKeySequence{newQKeySequenceFromKeys(core.Qt__Key_Backspace), newQKeySequenceFromKeys(core.Qt__Key_Delete)}) // Qt__KeySequence_Backspace would not work on macOS
 	actions.moveToBottom = newQActionWithIcon("Move To Bottom", ":assets/images/toolbar move to bottom.imageset/toolbar move to bottom.png")

@@ -276,6 +276,11 @@ func (e *Editor) mirrorElementAction(bool) {
 	}
 
 	copiedElements := e.stage.selection.copyElements()
+
+	if gui.QGuiApplication_KeyboardModifiers()&core.Qt__AltModifier != 0 {
+		e.stage.removeElements(e.stage.selection.elements)
+	}
+
 	e.stage.selection.clear()
 	for _, element := range copiedElements {
 		element.Mirror()
