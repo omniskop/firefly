@@ -53,10 +53,15 @@ func openProject() error {
 	if fileName == "" {
 		return errUserAbort
 	}
+	return openProjectPath(fileName)
+}
+
+func openProjectPath(fileName string) error {
 	project, err := storage.LoadFile(fileName)
 	if err != nil {
 		return err
 	}
+	addRecentFile(newRecentFileDetailed(project.Audio.Title, project.Audio.Author, fileName))
 	edit := editor.New(project, ApplicationCallbacks)
 	edit.SaveLocation = fileName
 	return nil

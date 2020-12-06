@@ -5,6 +5,8 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/therecipe/qt/quickcontrols2"
+
 	"github.com/omniskop/firefly/cmd/firefly/settings"
 
 	"github.com/omniskop/firefly/cmd/firefly/editor"
@@ -34,6 +36,7 @@ func main() {
 
 	versionCheck()
 
+	quickcontrols2.QQuickStyle_SetStyle(":/assets/qml/Styles/Dark")
 	app = createApplication()
 
 	logrus.Info("Application created")
@@ -44,10 +47,11 @@ func main() {
 			logrus.Error(err)
 			return
 		}
+		addRecentFile(newRecentFileDetailed(project.Audio.Title, project.Audio.Author, fileName))
 		edit := editor.New(project, ApplicationCallbacks)
 		edit.SaveLocation = fileName
 	} else {
-		OpenLaunchwindow()
+		OpenLaunchWindow()
 	}
 
 	logrus.Info("Starting Application")

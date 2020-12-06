@@ -1,0 +1,2 @@
+module Dark
+singleton Shared 1.0 Shared.qml

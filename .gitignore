@@ -6,6 +6,9 @@ Contents.json
 deploy/
 rcc.cpp
 rcc_cgo_*.go
+# qt moc
+moc_*
+moc.*
 
 # visual studio code
 /.vscode

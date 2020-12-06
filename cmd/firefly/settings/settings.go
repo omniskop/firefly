@@ -48,10 +48,18 @@ func GetWithDefault(key string, defaultValue interface{}) interface{} {
 
 // GetString returns the string that is stored under the key.
 // If the key is not set it returns an empty string.
-// For more information about value conversion check http://doc.qt.io/qt-5/qvariant.html#toInt.
+// For more information about value conversion check http://doc.qt.io/qt-5/qvariant.html#toString.
 func GetString(key string) string {
 	// if the returned QVariant is not of type string the ToString() method returns an empty string
 	return qSettings.Value(key, core.NewQVariant15("")).ToString()
+}
+
+// GetStrings returns the string slice that is stored under the key.
+// If the key is not set it returns an empty slice.
+// For more information about value conversion check http://doc.qt.io/qt-5/qvariant.html#toStringList.
+func GetStrings(key string) []string {
+	// if the returned QVariant is not of type []string and cannot be converted to it the ToStringList() method returns an empty slice
+	return qSettings.Value(key, core.NewQVariant17([]string{})).ToStringList()
 }
 
 // GetBool returns the bool that is stored under the key.

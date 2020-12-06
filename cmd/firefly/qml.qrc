@@ -1,0 +1,20 @@
+<!DOCTYPE RCC><RCC version="1.0">
+    <qresource>
+        <!-- QMl FILES -->
+        <file>assets/qml/Styles/Dark/qmldir</file>
+        <file>assets/qml/Styles/Dark/Shared.qml</file>
+        <file>assets/qml/Styles/Dark/Button.qml</file>
+        <file>assets/qml/Styles/Dark/GroupBox.qml</file>
+        <file>assets/qml/Styles/Dark/Label.qml</file>
+        <file>assets/qml/Styles/Dark/CheckBox.qml</file>
+        <file>assets/qml/Styles/Dark/TextField.qml</file>
+        <file>assets/qml/Styles/Dark/ComboBox.qml</file>
+        <file>assets/qml/Styles/Dark/Popup.qml</file>
+        <file>assets/qml/Styles/Dark/ItemDelegate.qml</file>
+
+        <file>assets/qml/LaunchWindow.qml</file>
+        <file>assets/qml/Grabber.qml</file>
+        <file>assets/qml/MappingEditor.qml</file>
+        <file>assets/qml/AppSettingsWindow.qml</file>
+    </qresource>
+</RCC>
