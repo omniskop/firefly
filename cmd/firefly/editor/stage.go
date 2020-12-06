@@ -517,6 +517,7 @@ func (s *stage) wheelEvent(event *gui.QWheelEvent) {
 	event = gui.NewQWheelEvent7(event.PosF(), event.GlobalPosF(), pixel, angle, event.Buttons(), event.Modifiers(), event.Phase(), event.Inverted(), event.Source())
 
 	event.Ignore() // TODO: is this necessary?
+	s.nextNonUserScrollEvents = 0
 	s.WheelEventDefault(event)
 }
 
