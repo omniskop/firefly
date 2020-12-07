@@ -4,6 +4,7 @@ import (
 	"image/color"
 	"math"
 	"sort"
+	"sync"
 
 	"github.com/sirupsen/logrus"
 
@@ -14,29 +15,56 @@ import (
 
 // Frame contains the time of the frame and the pixel colors
 type Frame struct {
-	Time  float64
-	Pixel []color.Color
+	Time   float64
+	Pixels []color.Color
 }
 
 // A Scanner can be used to scan lines of a project into separate pixel colors
 type Scanner struct {
-	scene *project.Scene
-	Size  int
+	scene   *project.Scene
+	mapping *Mapping
+	mutex   *sync.Mutex
 }
 
 // New creates a new scanner on the project. Size should be the number of led's.
 func New(scene *project.Scene, size int) Scanner {
 	return Scanner{
-		scene: scene,
-		Size:  size,
+		scene:   scene,
+		mapping: NewLinearMapping(size),
+		mutex:   new(sync.Mutex),
 	}
+}
+
+// GetPixelPosition returns the positions and the width of the pixel in the range of [0,1].
+// It exposes the GetPixelPosition method of the mapping used by the scanner.
+func (s Scanner) GetPixelPosition(p int) (float64, float64) {
+	return s.mapping.GetPixelPosition(p)
+}
+
+func (s *Scanner) SetMapping(m Mapping) {
+	s.mutex.Lock()
+	s.mapping = &m
+	s.mapping.fix()
+	s.mutex.Unlock()
 }
 
 // Scans a line at the specified time and the returns the frame
 func (s Scanner) Scan(time float64) Frame {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	size := s.mapping.Pixels()
 	var frame = Frame{
-		Time:  time,
-		Pixel: make([]color.Color, s.Size),
+		Time:   time,
+		Pixels: make([]color.Color, size),
+	}
+
+	// set offsets to black
+	for i := 0; i < s.mapping.StartOffset; i++ {
+		frame.Pixels[i] = color.Black
+	}
+	for i := size - s.mapping.EndOffset; i < size; i++ {
+		frame.Pixels[i] = color.Black
 	}
 
 	elements := s.scene.GetElementsAt(time)
@@ -48,53 +76,43 @@ func (s Scanner) Scan(time float64) Frame {
 	})
 
 	// Create a list of fragments. One for each element.
-	// Theoretically an element could have more than one fragment but we ignore this case in the moment
+	// Theoretically an element could have more than one fragment but we currently ignore this case.
 	// A fragment contains a start and a stop position.
 	// Start is the first pixel where the elements starts to be visible
 	// Stop is the last pixel where the elements is visible
 	fragments := make([]struct {
-		start int
-		stop  int
+		start float64
+		stop  float64
 	}, len(elements))
 
 	for i, element := range elements {
-		a, b := GetPixelCoverageOfPath(element.Shape.Path(), time)
-		//logrus.WithFields(logrus.Fields{
-		//	"start": int(a * float64(s.Size)),
-		//	"stop":  int(b * float64(s.Size)),
-		//}).Debug("fragment")
-
-		// convert the scene coordinates ([0,1]) to absolute pixel coordinates
-		// we add/subtract 0.5 to get the pixels based on their center
-		fragments[i].start = int(a*float64(s.Size) + 0.5)
-		fragments[i].stop = int(b*float64(s.Size) - 0.5)
+		a, b := getPixelCoverageOfPath(element.Shape.Path(), time)
+		fragments[i].start = a
+		fragments[i].stop = b
 	}
 
 	// iterate through all pixels ...
-	for pixelIndex := range frame.Pixel {
-		pixelInScene := vectorpath.Point{P: s.getPixelPosition(pixelIndex), T: time} // the location of the pixel in the scene
-		// ... and through all fragments ...
+	for pixelIndex := s.mapping.StartOffset; pixelIndex < size-s.mapping.EndOffset; pixelIndex++ {
+		pixelPosition, pixelWidth := s.mapping.GetPixelPosition(pixelIndex)
+		pixelPosition += pixelWidth / 2                             // use the center of the pixel for better results
+		pixelInScene := vectorpath.Point{P: pixelPosition, T: time} // the location of the pixel in the scene
 		var pixelColor color.Color = color.Black
+
+		// ... and through all fragments ...
 		for fragmentIndex, fragment := range fragments {
 			// ... to check which fragments are visible in each pixel
-			if fragment.start <= pixelIndex && fragment.stop >= pixelIndex {
+			if fragment.start <= pixelPosition && fragment.stop >= pixelPosition {
 				pixelColor = addColors(pixelColor, getFill(elements[fragmentIndex], pixelInScene))
 			}
 		}
-		frame.Pixel[pixelIndex] = pixelColor
+		frame.Pixels[pixelIndex] = pixelColor
 	}
 
 	return frame
 }
 
-// getPixelPosition returns the position of the pixel i in scene coordinates between [0, 1]
-func (s *Scanner) getPixelPosition(i int) float64 {
-	// we add 0.5 to get the center of the pixel and not the left corner
-	return (float64(i)+0.5)/float64(s.Size) + (1 / float64(s.Size))
-}
-
-// GetPixelCoverageOfPath returns the start and end positions [0, 1] where the shape is visible at the specific time
-func GetPixelCoverageOfPath(path vectorpath.Path, time float64) (float64, float64) {
+// getPixelCoverageOfPath returns the start and end positions [0, 1] where the shape is visible at the specific time
+func getPixelCoverageOfPath(path vectorpath.Path, time float64) (float64, float64) {
 	currentPoint := path.Start
 	var edges []vectorpath.Point
 	for _, segment := range path.Segments {

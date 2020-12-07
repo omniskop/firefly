@@ -170,7 +170,7 @@ func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
 		e.stage.debugShowZIndex = !e.stage.debugShowZIndex
 		e.stage.redraw()
 	case core.Qt__Key_4:
-		pixel := e.stage.needlePipeline.LastFrame.Pixel
+		pixel := e.stage.needlePipeline.LastFrame.Pixels
 		c := pixel[len(pixel)/2]
 		r, g, b, a := c.RGBA()
 		logrus.Debugf("direct: %d %d %d %d | gamma: %.f %.f %.f %.f",

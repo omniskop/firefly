@@ -270,6 +270,10 @@ func (e *Editor) OpenAction(bool) {
 	e.applicationCallbacks["open"]()
 }
 
+func (e *Editor) OpenSettingsAction(bool) {
+	e.applicationCallbacks["openSettings"]()
+}
+
 func (e *Editor) mirrorElementAction(bool) {
 	if e.stage.selection.isEmpty() {
 		return

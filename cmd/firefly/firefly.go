@@ -5,8 +5,6 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/therecipe/qt/quickcontrols2"
-
 	"github.com/omniskop/firefly/cmd/firefly/settings"
 
 	"github.com/omniskop/firefly/cmd/firefly/editor"
@@ -36,7 +34,6 @@ func main() {
 
 	versionCheck()
 
-	quickcontrols2.QQuickStyle_SetStyle(":/assets/qml/Styles/Dark")
 	app = createApplication()
 
 	logrus.Info("Application created")

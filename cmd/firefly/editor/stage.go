@@ -55,36 +55,22 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 	scene.SetSceneRect2(0, 0, editorViewWidth, duration)
 	scene.SetBackgroundBrush(gui.NewQBrush3(gui.NewQColor3(14, 15, 16, 255), core.Qt__SolidPattern))
 
-	var streamerWriter io.Writer
-	if settings.GetBool("liveLedStrip/enabled") {
-		address := settings.GetString("liveLedStrip/address")
-		port := settings.GetInt("liveLedStrip/port")
-		if address != "" && port != 0 {
-			var err error
-			streamerWriter, err = streamer.NewUDPWriter(net.JoinHostPort(settings.GetString("liveLedStrip/address"), strconv.Itoa(settings.GetInt("liveLedStrip/port"))))
-			if err != nil {
-				logrus.Error(err)
-				streamerWriter = nil
-			}
-		}
-	}
-
-	ledCount := settings.GetInt("ledCount")
-	if ledCount == 0 {
-		logrus.Warnf("setting 'ledCount' is not set")
-		ledCount = 30
-	}
-
 	s := stage{
 		QGraphicsView:  widgets.NewQGraphicsView(nil),
 		scene:          scene,
 		projectScene:   projectScene,
 		editor:         editor,
 		duration:       duration,
-		needlePipeline: streamer.NewPipeline(scanner.New(projectScene, ledCount), streamer.New(streamerWriter)),
+		needlePipeline: streamer.NewPipeline(scanner.New(projectScene, 30), streamer.New(nil)),
 		selection:      elementList{onChange: editor.selectionChanged},
 		items:          make(map[unsafe.Pointer]*elementGraphicsItem),
 	}
+
+	settings.OnChange("liveLedStrip/enabled", s.updatePipeline)
+	settings.OnChange("liveLedStrip/address", s.updatePipeline)
+	settings.OnChange("liveLedStrip/port", s.updatePipeline)
+	settings.OnChange("ledCount", s.updatePipeline)
+	s.updatePipeline(nil)
 
 	s.SetObjectName("mainEditorView")
 	s.SetScene(scene)
@@ -124,6 +110,31 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 	scene.ConnectMouseMoveEvent(s.sceneMouseMoveEvent)
 
 	return &s
+}
+
+func (s *stage) updatePipeline(interface{}) {
+	var streamerWriter io.Writer
+	if settings.GetBool("liveLedStrip/enabled") {
+		address := settings.GetString("liveLedStrip/address")
+		port := settings.GetInt("liveLedStrip/port")
+		if address != "" && port != 0 {
+			var err error
+			streamerWriter, err = streamer.NewUDPWriter(net.JoinHostPort(settings.GetString("liveLedStrip/address"), strconv.Itoa(settings.GetInt("liveLedStrip/port"))))
+			if err != nil {
+				logrus.Error(err)
+				streamerWriter = nil
+			}
+		}
+	}
+
+	ledCount := settings.GetInt("ledCount")
+	if ledCount == 0 {
+		logrus.Warnf("setting 'ledCount' is not set")
+		ledCount = 30
+	}
+
+	s.needlePipeline.Scanner.SetMapping(*scanner.NewLinearMapping(ledCount))
+	s.needlePipeline.Streamer.SetDestination(streamerWriter)
 }
 
 func (s *stage) createElements() {
@@ -751,20 +762,17 @@ func (s *stage) drawForeground(painter *gui.QPainter, rect *core.QRectF) {
 
 	// scanner preview
 	painter.SetPen(noPen)
-	//fill := gui.NewQBrush3(gui.NewQColor3(0, 0, 0, 255), core.Qt__SolidPattern)
-	pixelWidth := editorViewWidth / float64(len(s.needlePipeline.LastFrame.Pixel))
 	gradient := gui.NewQLinearGradient2(gradientStart, needleStart)
-	for i, pixel := range s.needlePipeline.LastFrame.Pixel {
-		//fill.SetColor(NewQColorFromColor(pixel))
-		//painter.SetBrush(fill)
+	for i, pixel := range s.needlePipeline.LastFrame.Pixels {
+		pixelPosition, pixelWidth := s.needlePipeline.Scanner.GetPixelPosition(i)
 		gradient.SetColorAt(1, NewQColorFromColor(pixel))
 		gradient.SetColorAt(.5, NewQColorFromColor(pixel))
 		gradient.SetColorAt(0, NewQColorFromColor(color.Transparent))
 		painter.SetBrush(gui.NewQBrush10(gradient))
 		if verticalTimeAxis {
-			painter.DrawRect(core.NewQRectF4(float64(i)*pixelWidth, gradientStart.Y(), pixelWidth, needleStart.Y()-gradientStart.Y()))
+			painter.DrawRect(core.NewQRectF4(pixelPosition, gradientStart.Y(), pixelWidth, needleStart.Y()-gradientStart.Y()))
 		} else {
-			painter.DrawRect(core.NewQRectF4(gradientStart.Y(), float64(i)*pixelWidth, needleStart.Y()-gradientStart.Y(), pixelWidth))
+			painter.DrawRect(core.NewQRectF4(gradientStart.Y(), pixelPosition, needleStart.Y()-gradientStart.Y(), pixelWidth))
 		}
 	}
 

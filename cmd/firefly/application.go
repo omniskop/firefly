@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/therecipe/qt/quickcontrols2"
+
 	"github.com/therecipe/qt/gui"
 	"github.com/therecipe/qt/uitools"
 
@@ -18,6 +20,8 @@ import (
 var errUserAbort = errors.New("user aborted")
 
 func createApplication() *widgets.QApplication {
+	quickcontrols2.QQuickStyle_SetStyle(":/assets/qml/Styles/Dark")
+	core.QCoreApplication_SetAttribute(core.Qt__AA_EnableHighDpiScaling, true)
 	core.QCoreApplication_SetAttribute(core.Qt__AA_ShareOpenGLContexts, true)
 	app := widgets.NewQApplication(len(os.Args), os.Args)
 	app.SetWindowIcon(gui.NewQIcon5(":assets/images/logo.png"))
@@ -34,6 +38,9 @@ func init() {
 			_ = openProject()
 		},
 		"openLogConsole": NewLogConsoleWindow,
+		"openSettings": func() {
+			_ = NewAppSettingsWindow()
+		},
 	}
 }
 
