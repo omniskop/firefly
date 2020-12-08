@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"os"
 	"runtime"
+
+	"github.com/omniskop/firefly/pkg/scanner"
 
 	"github.com/omniskop/firefly/cmd/firefly/settings"
 
@@ -64,8 +67,12 @@ func versionCheck() {
 		restoreDefaultSettings()
 		logrus.Info("new installation: settings have been reset")
 	case "0.1.0":
-		return
+		mapping, _ := json.Marshal(scanner.NewLinearMapping(settings.GetInt("ledCount")))
+		settings.Set("liveLedStrip/mapping", string(mapping))
+		settings.Remove("ledCount")
+		fallthrough
+	case "0.1.1":
 	}
 
-	settings.Set("version", "0.1.0")
+	settings.Set("version", "0.1.1")
 }

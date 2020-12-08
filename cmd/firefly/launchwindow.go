@@ -200,12 +200,6 @@ func serializeRecentFiles(files []*recentFile) string {
 
 // deserializeRecentFiles parses a stored list of files
 func deserializeRecentFiles(input string) (rfiles []*recentFile) {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println(r)
-			rfiles = nil
-		}
-	}()
 	var data []struct {
 		SongTitle  string
 		SongAuthor string

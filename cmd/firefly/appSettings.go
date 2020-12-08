@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"strings"
+
+	"github.com/omniskop/firefly/pkg/scanner"
 
 	"github.com/therecipe/qt/quick"
 
@@ -79,7 +82,7 @@ func (m *mappingModel) deletePoint(index int) {
 			additionalLeds = 0
 		}
 	}
-	newLeds = append(newLeds, m.leds[len(m.leds)-1])
+	newLeds = append(newLeds, m.leds[len(m.leds)-1]+additionalLeds)
 	m.positions = newPositions
 	m.leds = newLeds
 }
@@ -114,6 +117,33 @@ func (m *mappingModel) setLeds(i int, v int) {
 	}
 }
 
+func (m *mappingModel) scannerMapping() *scanner.Mapping {
+	mapping := &scanner.Mapping{
+		Reversed:    false,
+		StartOffset: m.StartOffset(),
+		EndOffset:   m.StopOffset(),
+		Segments:    nil,
+	}
+	for i, p := range m.positions {
+		mapping.AddStop(float64(p), m.leds[i])
+	}
+	mapping.AddStop(1, m.leds[len(m.leds)-1])
+	return mapping
+}
+
+func (m *mappingModel) setScannerMapping(mapping *scanner.Mapping) {
+	m.SetStartOffset(mapping.StartOffset)
+	m.SetStopOffset(mapping.EndOffset)
+	m.positions = make([]float32, len(mapping.Segments)-1)
+	m.leds = make([]int, len(mapping.Segments))
+	for i, seg := range mapping.Segments {
+		if i < len(mapping.Segments)-1 {
+			m.positions[i] = float32(seg.To)
+		}
+		m.leds[i] = seg.PixelSize
+	}
+}
+
 type appSettingsModel struct {
 	core.QObject
 
@@ -131,24 +161,41 @@ type appSettingsModel struct {
 }
 
 func (m *appSettingsModel) init() {
-	m.load()
-
-	m.SetLiveLedStripMappingMode(0)
-	m.SetMapping(NewMappingModel(nil))
-}
-
-func (m *appSettingsModel) load() {
 	m.SetLiveLedStripEnabled(settings.GetBool("liveLedStrip/enabled"))
-	m.SetLedCount(settings.GetInt("ledCount"))
 	m.SetLiveLedStripAddress(settings.GetString("liveLedStrip/address"))
 	m.SetLiveLedStripPort(settings.GetInt("liveLedStrip/port"))
+
+	var mapping *scanner.Mapping
+	err := json.Unmarshal([]byte(settings.GetString("liveLedStrip/mapping")), &mapping)
+	if err != nil {
+		mapping = scanner.NewLinearMapping(30)
+	}
+	m.SetMapping(NewMappingModel(m))
+	m.Mapping().setScannerMapping(mapping)
+	if mappingIsLinear(mapping) {
+		m.SetLiveLedStripMappingMode(0)
+		m.SetLedCount(mapping.Segments[0].PixelSize)
+	} else {
+		m.SetLiveLedStripMappingMode(1)
+		m.SetLedCount(0)
+	}
+}
+
+func mappingIsLinear(m *scanner.Mapping) bool {
+	return m.StartOffset == 0 && m.EndOffset == 0 && m.Reversed == false && len(m.Segments) == 1
 }
 
 func (m *appSettingsModel) save() {
 	settings.Set("liveLedStrip/enabled", m.IsLiveLedStripEnabled())
-	settings.Set("ledCount", m.LedCount())
 	settings.Set("liveLedStrip/address", m.LiveLedStripAddress())
 	settings.Set("liveLedStrip/port", m.LiveLedStripPort())
+	if m.LiveLedStripMappingMode() == 0 {
+		data, _ := json.Marshal(scanner.NewLinearMapping(m.LedCount()))
+		settings.Set("liveLedStrip/mapping", string(data))
+	} else {
+		data, _ := json.Marshal(m.Mapping().scannerMapping())
+		settings.Set("liveLedStrip/mapping", string(data))
+	}
 }
 
 func NewAppSettingsWindow() error {
@@ -194,8 +241,9 @@ func NewAppSettingsWindow() error {
 }
 
 func restoreDefaultSettings() {
-	settings.Set("ledCount", 30)
 	settings.Set("liveLedStrip/enabled", false)
 	settings.Set("liveLedStrip/address", "127.0.0.1")
 	settings.Set("liveLedStrip/port", "20202")
+	mapping, _ := json.Marshal(scanner.NewLinearMapping(30))
+	settings.Set("liveLedStrip/mapping", string(mapping))
 }

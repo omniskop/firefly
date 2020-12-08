@@ -79,14 +79,16 @@ Rectangle {
                     }
 
                     ComboBox {
-                        model: [qsTr("Simple")/*, qsTr("Custom")*/]
+                        model: [qsTr("Simple"), qsTr("Custom")]
                         Layout.fillWidth: true
+                        currentIndex: Model.liveLedStripMappingMode
 
                         Component.onCompleted: {
                             activated(currentIndex)
                         }
 
                         onActivated: {
+                            Model.liveLedStripMappingMode = index
                             if(index == 0) {
                                 pixelsLabel.visible = true
                                 pixelsInput.visible = true

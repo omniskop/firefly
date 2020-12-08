@@ -1,6 +1,7 @@
 package editor
 
 import (
+	"encoding/json"
 	"fmt"
 	"image/color"
 	"io"
@@ -69,7 +70,7 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 	settings.OnChange("liveLedStrip/enabled", s.updatePipeline)
 	settings.OnChange("liveLedStrip/address", s.updatePipeline)
 	settings.OnChange("liveLedStrip/port", s.updatePipeline)
-	settings.OnChange("ledCount", s.updatePipeline)
+	settings.OnChange("liveLedStrip/mapping", s.updatePipeline)
 	s.updatePipeline(nil)
 
 	s.SetObjectName("mainEditorView")
@@ -127,13 +128,14 @@ func (s *stage) updatePipeline(interface{}) {
 		}
 	}
 
-	ledCount := settings.GetInt("ledCount")
-	if ledCount == 0 {
-		logrus.Warnf("setting 'ledCount' is not set")
-		ledCount = 30
+	rawMapping := settings.GetString("liveLedStrip/mapping")
+	var mapping scanner.Mapping
+	err := json.Unmarshal([]byte(rawMapping), &mapping)
+	if err != nil {
+		mapping = *scanner.NewLinearMapping(30)
 	}
 
-	s.needlePipeline.Scanner.SetMapping(*scanner.NewLinearMapping(ledCount))
+	s.needlePipeline.Scanner.SetMapping(mapping)
 	s.needlePipeline.Streamer.SetDestination(streamerWriter)
 }
 

@@ -39,7 +39,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         smooth: false
         fillMode: Image.PreserveAspectFit
-        source: ":/assets/images/grabber.svg"
+        source: "qrc:/assets/images/grabber.svg"
 
         // fixes svg resolution
         sourceSize.height: height * Screen.devicePixelRatio

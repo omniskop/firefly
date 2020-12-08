@@ -6,7 +6,7 @@ import Dark 1.0
 Item {
     id: stripSetupContainer
     width: 295
-    height: 97
+    height: 100
 
     property color lineColor: Qt.darker(Shared.textColor, 1.3)
     signal updatePositions
@@ -22,6 +22,14 @@ Item {
         anchors.left: parent.left
         anchors.leftMargin: 0
         font.pixelSize: 12
+    }
+
+    Label {
+        text: qsTr("Left Click: Add Step\nRight Click: Remove Step")
+        anchors.top: label_ledStrip.top
+        anchors.right: parent.right
+        font.pixelSize: 11
+        horizontalAlignment: Text.AlignRight
     }
 
     Label {
@@ -208,6 +216,7 @@ Item {
                 }
             }
 
+            // last led segment
             Item {
                 height: parent.height
 
@@ -241,6 +250,18 @@ Item {
                     font.pixelSize: 10
                     color: Shared.textColor
                     validator: IntValidator {bottom: 0; top: 1000000}
+
+                    Component.onCompleted: {
+                        stripSetupContainer.updatePositions.connect(updateText);
+                    }
+
+                    Component.onDestruction: {
+                        stripSetupContainer.updatePositions.disconnect(updateText);
+                    }
+
+                    function updateText() {
+                        text = Model.mapping.getLeds(Model.mapping.pointCount())
+                    }
 
                     onTextEdited: {
                         if(text == "") text = "0";
