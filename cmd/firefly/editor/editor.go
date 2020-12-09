@@ -78,10 +78,6 @@ func New(proj *project.Project, applicationCallbacks map[string]func()) *Editor 
 	return edit
 }
 
-func (e *Editor) UpdateScrollPosition(float64) {
-
-}
-
 func (e *Editor) Time() float64 {
 	// TODO: implement AudioOffset
 	return e.player.time()

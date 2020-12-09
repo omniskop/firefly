@@ -100,7 +100,6 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 	s.ConnectMouseReleaseEvent(s.viewMouseReleaseEvent)
 	s.ConnectKeyPressEvent(s.keyPressEvent)
 	s.ConnectEvent(s.event)
-	s.ConnectEventFilter(s.eventFilter)
 	s.ConnectDrawBackground(s.drawBackground)
 	s.ConnectDrawForeground(s.drawForeground)
 	s.ConnectScrollContentsBy(s.scrollContentsByEvent)
@@ -558,17 +557,6 @@ func (s *stage) event(event *core.QEvent) bool {
 	return s.EventDefault(event)
 }
 
-func (s *stage) eventFilter(target *core.QObject, event *core.QEvent) bool {
-	// TODO: check if the editor is currently playing
-	//if event.Type() == core.QEvent__Wheel {
-	//	logrus.Debug("event filter")
-	//	event.Accept()
-	//	return true
-	//}
-	event.Ignore()
-	return false
-}
-
 func (s *stage) resizeEvent(event *gui.QResizeEvent) {
 	if event.OldSize().Width() == -1 {
 		// ignore if this is the first event at the start
@@ -767,6 +755,9 @@ func (s *stage) drawForeground(painter *gui.QPainter, rect *core.QRectF) {
 	gradient := gui.NewQLinearGradient2(gradientStart, needleStart)
 	for i, pixel := range s.needlePipeline.LastFrame.Pixels {
 		pixelPosition, pixelWidth := s.needlePipeline.Scanner.GetPixelPosition(i)
+		if pixelPosition < 0 || pixelPosition > 1 {
+			continue
+		}
 		gradient.SetColorAt(1, NewQColorFromColor(pixel))
 		gradient.SetColorAt(.5, NewQColorFromColor(pixel))
 		gradient.SetColorAt(0, NewQColorFromColor(color.Transparent))
