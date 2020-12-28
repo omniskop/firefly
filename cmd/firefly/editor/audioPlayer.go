@@ -3,13 +3,14 @@ package editor
 import (
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"strings"
 
-	"github.com/omniskop/firefly/cmd/firefly/settings"
+	"github.com/faiface/beep/wav"
 
 	"github.com/omniskop/firefly/cmd/firefly/audio"
-
+	"github.com/omniskop/firefly/cmd/firefly/settings"
 	"github.com/omniskop/firefly/pkg/project"
 
 	"github.com/sirupsen/logrus"
@@ -17,10 +18,15 @@ import (
 	"github.com/therecipe/qt/multimedia"
 )
 
+type rawAudio struct {
+	samples  [][2]float64
+	rate     int
+	channels int
+}
+
 type audioPlayer struct {
 	*multimedia.QMediaPlayer
-	probe          *multimedia.QAudioProbe
-	mediaPath      string
+	raw            rawAudio
 	onTimeChangedF func(t float64)
 	onReadyF       func()
 	onErrorF       func(error)
@@ -28,9 +34,7 @@ type audioPlayer struct {
 
 func NewAudioPlayer(mediapath string) *audioPlayer {
 	player := audioPlayer{
-		QMediaPlayer: multimedia.NewQMediaPlayer(nil, multimedia.QMediaPlayer__LowLatency),
-		probe:        multimedia.NewQAudioProbe(nil),
-		mediaPath:    mediapath,
+		QMediaPlayer: multimedia.NewQMediaPlayer(nil, multimedia.QMediaPlayer__LowLatency|multimedia.QMediaPlayer__StreamPlayback),
 	}
 
 	player.SetNotifyInterval(16)
@@ -43,8 +47,35 @@ func NewAudioPlayer(mediapath string) *audioPlayer {
 	return &player
 }
 
-func (p *audioPlayer) setFile(file string) {
-	p.SetMedia(multimedia.NewQMediaContent2(core.QUrl_FromLocalFile(file)), nil)
+func (p *audioPlayer) setFile(filepath string) {
+	p.SetMedia(multimedia.NewQMediaContent2(core.QUrl_FromLocalFile(filepath)), nil)
+
+	// load samples for visualization
+	file, err := os.Open(filepath)
+	if err != nil {
+		logrus.WithField("error", err).Warn("[Audio] unable to open audio file for loading samples")
+		return
+	}
+	defer file.Close()
+
+	stream, format, err := wav.Decode(file)
+	if err != nil {
+		logrus.WithField("error", err).Warn("[Audio] unable to decode audio file for loading samples")
+		return
+	}
+
+	p.raw = rawAudio{
+		rate:     int(format.SampleRate),
+		channels: format.NumChannels,
+	}
+
+	sampleCount := stream.Len()
+	p.raw.samples = make([][2]float64, sampleCount)
+	_, ok := stream.Stream(p.raw.samples)
+	if !ok {
+		logrus.WithField("error", err).Warn("[Audio] unable to read samples")
+		return
+	}
 }
 
 func (p *audioPlayer) play() {
@@ -66,6 +97,27 @@ func (p *audioPlayer) setTime(value float64) {
 
 func (p *audioPlayer) duration() float64 {
 	return float64(p.QMediaPlayer.Duration()) / 1000 // milliseconds to seconds
+}
+
+func (p *audioPlayer) getSampleAt(time float64, width float64) float64 {
+	sampleIndex := int(float64(p.raw.rate) * time)
+	lastIndex := int(float64(p.raw.rate)*(time+width)) + 1
+	if sampleIndex >= len(p.raw.samples) || sampleIndex < 0 || lastIndex >= len(p.raw.samples) || lastIndex < 0 {
+		return 0
+	}
+	if lastIndex == sampleIndex {
+		// return a single sample
+		return math.Abs(p.raw.samples[sampleIndex][0])
+	}
+
+	// return the average over a timespan
+	var result float64
+	for i := sampleIndex; i < lastIndex; i++ {
+		result += math.Abs(p.raw.samples[i][0])
+		//result = math.Max(result, math.Abs(p.raw.samples[i][0]))
+	}
+	return result / float64(lastIndex-sampleIndex)
+	//return result
 }
 
 func (p *audioPlayer) onTimeChanged(f func(float64)) {

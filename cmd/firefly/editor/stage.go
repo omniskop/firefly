@@ -9,6 +9,7 @@ import (
 	"net"
 	"runtime"
 	"strconv"
+	"time"
 	"unsafe"
 
 	"github.com/omniskop/firefly/cmd/firefly/settings"
@@ -33,6 +34,7 @@ type stage struct {
 	scene        *widgets.QGraphicsScene
 	projectScene *project.Scene
 	editor       *Editor
+	drawLimiter  *drawLimiter
 	duration     float64
 	selection    elementList
 	items        map[unsafe.Pointer]*elementGraphicsItem
@@ -56,10 +58,16 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 	scene.SetSceneRect2(0, 0, editorViewWidth, duration)
 	scene.SetBackgroundBrush(gui.NewQBrush3(gui.NewQColor3(14, 15, 16, 255), core.Qt__SolidPattern))
 
+	view := widgets.NewQGraphicsView(nil)
+
 	s := stage{
-		QGraphicsView:  widgets.NewQGraphicsView(nil),
-		scene:          scene,
-		projectScene:   projectScene,
+		QGraphicsView: view,
+		scene:         scene,
+		projectScene:  projectScene,
+		drawLimiter: newDrawLimiter(16*time.Millisecond, func(reg *gui.QRegion) {
+			//view.Update4(reg)
+			view.Update()
+		}),
 		editor:         editor,
 		duration:       duration,
 		needlePipeline: streamer.NewPipeline(scanner.New(projectScene, 30), streamer.NewWLED(nil)),
@@ -67,6 +75,7 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 		items:          make(map[unsafe.Pointer]*elementGraphicsItem),
 	}
 
+	s.SetAttribute(core.Qt__WA_OpaquePaintEvent, true)
 	settings.OnChange("liveLedStrip/enabled", s.updatePipeline)
 	settings.OnChange("liveLedStrip/address", s.updatePipeline)
 	settings.OnChange("liveLedStrip/port", s.updatePipeline)
@@ -77,14 +86,12 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 	s.SetScene(scene)
 	s.createElements()
 	//s.SetViewport(widgets.NewQOpenGLWidget(nil, 0))
-	s.SetRenderHints(gui.QPainter__Antialiasing | gui.QPainter__HighQualityAntialiasing | gui.QPainter__SmoothPixmapTransform)
-	// the default viewport-update-mode caused graphical glitches with the macOS scroll bar
-	// TODO: check if this is still the case
-	s.SetViewportUpdateMode(widgets.QGraphicsView__FullViewportUpdate)
+	s.SetRenderHints(gui.QPainter__Antialiasing | gui.QPainter__SmoothPixmapTransform)
 	s.SetVerticalScrollBarPolicy(core.Qt__ScrollBarAlwaysOn)
 	s.SetHorizontalScrollBarPolicy(core.Qt__ScrollBarAlwaysOff)
 	s.SetDragMode(widgets.QGraphicsView__RubberBandDrag)
 	s.SetRubberBandSelectionMode(core.Qt__IntersectsItemShape)
+	s.SetMouseTracking(true) // enables mouse move events without button presses
 	s.updateSize()
 	s.updateScale()
 	s.showTimeSpan(10)
@@ -103,6 +110,7 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 	s.ConnectDrawBackground(s.drawBackground)
 	s.ConnectDrawForeground(s.drawForeground)
 	s.ConnectScrollContentsBy(s.scrollContentsByEvent)
+	//s.ConnectPaintEvent(s.paintEvent)
 	s.scene.ConnectChanged(s.sceneChanged)
 
 	scene.ConnectMousePressEvent(s.sceneMousePressEvent)
@@ -437,6 +445,31 @@ func (s *stage) showTimeSpan(timeSpan float64) {
 	}
 }
 
+var lastPaintEvent time.Time
+var toggle bool
+
+func (s *stage) paintEvent(event *gui.QPaintEvent) {
+
+	if canDraw, newEvent := s.drawLimiter.canDraw(event); canDraw {
+		event = newEvent
+	} else {
+		return
+	}
+	sinceLast := time.Since(lastPaintEvent)
+	lastPaintEvent = time.Now()
+
+	event.Ignore()
+	t := time.Now()
+	s.PaintEventDefault(event)
+	dTime := time.Since(t)
+	fmt.Println(sinceLast, dTime, regionString(event.Region()))
+}
+
+func regionString(reg *gui.QRegion) string {
+	r := reg.BoundingRect()
+	return fmt.Sprint("{", r.X(), r.Y(), r.Width(), r.Height(), "}")
+}
+
 func (s *stage) sceneMousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
 	// The builtin selection mechanism has some unwanted side effects that resulted in the need to implement my own.
 	// The items themselves will know when they get clicked but I don't know when the user clicks on the background.
@@ -497,6 +530,12 @@ func (s *stage) sceneMouseMoveEvent(event *widgets.QGraphicsSceneMouseEvent) {
 		mousePosition := vpPoint(event.ScenePos())
 		s.creationElement.element.Shape.SetCreationBounds(s.creationStart, mousePosition.Sub(s.creationStart))
 		s.creationElement.updatePath()
+	}
+
+	// update audio side stripe if we are not already playing
+	if !s.editor.playing {
+		viewport := s.MapToScene2(s.Viewport().Geometry()).BoundingRect()
+		s.scene.Invalidate2(1, viewport.Top(), viewport.Right(), viewport.Bottom(), widgets.QGraphicsScene__BackgroundLayer)
 	}
 
 	event.Ignore()
@@ -685,6 +724,16 @@ func (s *stage) drawBackground(painter *gui.QPainter, rect *core.QRectF) {
 	painter.DrawLine3(0, 0, editorViewWidth, 0)
 	painter.DrawLine(core.NewQLineF3(0, s.duration, editorViewWidth, s.duration))
 
+	// draw audio waveform
+	painter.SetPen(noPen)
+	painter.SetBrush(gui.NewQBrush3(NewQColorFromColor(color.RGBA{82, 84, 87, 255}), core.Qt__SolidPattern))
+	for y := 0; y < s.Viewport().Height(); y++ {
+		rect := s.MapToScene6(s.Viewport().Width()-audioSideStripe, y, audioSideStripe, 1).BoundingRect()
+		sample := s.editor.player.getSampleAt(rect.Y(), rect.Height())
+		rect = s.MapToScene6(s.Viewport().Width()-audioSideStripe, y, int(float64(audioSideStripe)*sample), 1).BoundingRect()
+		painter.DrawRect(rect)
+	}
+
 	// draw stage shadow
 	painter.SetPen(noPen)
 	shadowRect := s.MapToScene6(infoSideStripe-30, 0, 30, s.Viewport().Height()).BoundingRect()
@@ -699,6 +748,15 @@ func (s *stage) drawBackground(painter *gui.QPainter, rect *core.QRectF) {
 	gradient.SetFinalStop(shadowRect.TopLeft())
 	painter.SetBrush(gui.NewQBrush10(gradient))
 	painter.DrawRect(shadowRect)
+
+	// draw cursor lines
+	origin := s.MapFromGlobal(gui.QCursor_Pos())
+	relativeOrigin := s.MapToScene(origin)
+	pen = gui.NewQPen3(NewQColorFromColor(color.RGBA{100, 100, 100, 255}))
+	pen.SetWidth(0)
+	painter.SetPen(pen)
+	painter.DrawLine(core.NewQLineF3(1, relativeOrigin.Y(), 2, relativeOrigin.Y()))
+
 }
 
 func (s *stage) drawForeground(painter *gui.QPainter, rect *core.QRectF) {
@@ -783,4 +841,54 @@ func (s *stage) drawForeground(painter *gui.QPainter, rect *core.QRectF) {
 	pen.SetCosmetic(true)
 	painter.SetPen(pen)
 	painter.DrawLine(core.NewQLineF2(needleStart, needleStop))
+}
+
+// the drawLimiter will limit the frequency at which the scene will be redrawn
+type drawLimiter struct {
+	timer     *time.Timer
+	lastCall  time.Time
+	running   bool
+	call      func(*gui.QRegion)
+	region    *gui.QRegion
+	frameTime time.Duration
+}
+
+// newDrawLimiter returns a new drawLimiter with the desired frameTime and the function that should be limited
+func newDrawLimiter(frameTime time.Duration, call func(*gui.QRegion)) *drawLimiter {
+	out := &drawLimiter{
+		timer:     time.NewTimer(time.Second),
+		call:      call,
+		frameTime: frameTime,
+		region:    gui.NewQRegion(),
+	}
+	out.timer.Stop()
+	return out
+}
+
+// canDraw returns true if the set frame time has passed since the last call
+// This method is not thread safe.
+func (lt *drawLimiter) canDraw(event *gui.QPaintEvent) (bool, *gui.QPaintEvent) {
+	sinceLast := time.Since(lt.lastCall)
+	if sinceLast > lt.frameTime {
+		lt.lastCall = time.Now()
+		lt.timer.Stop()
+		event = gui.NewQPaintEvent(lt.region.United(event.Region()))
+		lt.region = gui.NewQRegion()
+		return true, event
+	} else if !lt.running {
+		lt.running = true
+		lt.timer.Stop()
+		lt.timer.Reset(lt.frameTime - sinceLast)
+		go func() {
+			<-lt.timer.C
+			if lt.call != nil {
+				lt.call(lt.region)
+				lt.region = gui.NewQRegion()
+			}
+			lt.running = false
+		}()
+		lt.region = lt.region.United(event.Region())
+		return false, nil
+	}
+	return false, nil
 }
