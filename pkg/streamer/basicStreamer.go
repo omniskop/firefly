@@ -13,28 +13,32 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type Streamer struct {
+type Streamer interface {
+	Stream(frame scanner.Frame)
+}
+
+type BasicStreamer struct {
 	destination io.Writer
 	gamma       float64
 	Version     int
 	mutex       sync.Mutex
 }
 
-func New(dst io.Writer) Streamer {
-	return Streamer{
+func NewBasic(dst io.Writer) BasicStreamer {
+	return BasicStreamer{
 		destination: dst,
 		gamma:       2.2,
 		Version:     1,
 	}
 }
 
-func (s *Streamer) SetDestination(writer io.Writer) {
+func (s *BasicStreamer) SetDestination(writer io.Writer) {
 	s.mutex.Lock()
 	s.destination = writer
 	s.mutex.Unlock()
 }
 
-func (s Streamer) Stream(frame scanner.Frame) {
+func (s BasicStreamer) Stream(frame scanner.Frame) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	if s.destination == nil {
@@ -48,7 +52,7 @@ func (s Streamer) Stream(frame scanner.Frame) {
 	}
 }
 
-func (s Streamer) streamVersion1(frame scanner.Frame) {
+func (s BasicStreamer) streamVersion1(frame scanner.Frame) {
 	const maxPixelsPerPacket = 300
 	// split the data in multiple packets
 	packetCount := int(math.Ceil(float64(len(frame.Pixels)) / maxPixelsPerPacket))
@@ -101,7 +105,7 @@ func writeHeader(packet *bytes.Buffer, frame scanner.Frame) {
 	io.Copy(packet, buffer)
 }
 
-func (s Streamer) streamVersion0(frame scanner.Frame) {
+func (s BasicStreamer) streamVersion0(frame scanner.Frame) {
 	var data = make([]byte, 1+3*len(frame.Pixels))
 	data[0] = 0
 	for i, pixel := range frame.Pixels {
