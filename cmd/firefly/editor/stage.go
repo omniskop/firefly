@@ -62,7 +62,7 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 		projectScene:   projectScene,
 		editor:         editor,
 		duration:       duration,
-		needlePipeline: streamer.NewPipeline(scanner.New(projectScene, 30), streamer.NewBasic(nil)),
+		needlePipeline: streamer.NewPipeline(scanner.New(projectScene, 30), streamer.NewWLED(nil)),
 		selection:      elementList{onChange: editor.selectionChanged},
 		items:          make(map[unsafe.Pointer]*elementGraphicsItem),
 	}
@@ -135,9 +135,9 @@ func (s *stage) updatePipeline(interface{}) {
 	}
 
 	s.needlePipeline.Scanner.SetMapping(mapping)
-	basicStreamer := s.needlePipeline.Streamers[0].(streamer.BasicStreamer)
-	basicStreamer.SetDestination(streamerWriter)
-	s.needlePipeline.Streamers[0] = basicStreamer
+	str := s.needlePipeline.Streamers[0].(*streamer.WLEDStreamer)
+	str.SetDestination(streamerWriter)
+	s.needlePipeline.Streamers[0] = str
 }
 
 func (s *stage) createElements() {

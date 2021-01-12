@@ -2,6 +2,7 @@ package streamer
 
 import (
 	"io"
+	"sync"
 
 	"github.com/sirupsen/logrus"
 
@@ -10,6 +11,7 @@ import (
 
 type WLEDStreamer struct {
 	destination io.Writer
+	mutex       sync.Mutex
 }
 
 // NewWLED creates a new Streamer that can control a WLED Device.
@@ -23,6 +25,8 @@ func NewWLED(dst io.Writer) *WLEDStreamer {
 func (s *WLEDStreamer) Stream(frame scanner.Frame) {
 	// Currently only the DRGB protocol is used.
 	// In the future it could be expanded to add support for more wled protocols.
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 
 	var packet = make([]byte, 2+3*len(frame.Pixels))
 	packet[0] = 2   // 2 = DRGB protocol
@@ -38,4 +42,10 @@ func (s *WLEDStreamer) Stream(frame scanner.Frame) {
 	if err != nil {
 		logrus.Errorf("streaming error: %v", err)
 	}
+}
+
+func (s *WLEDStreamer) SetDestination(writer io.Writer) {
+	s.mutex.Lock()
+	s.destination = writer
+	s.mutex.Unlock()
 }
