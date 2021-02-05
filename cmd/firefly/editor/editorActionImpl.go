@@ -5,6 +5,10 @@ import (
 	"math"
 	"reflect"
 
+	"github.com/omniskop/firefly/pkg/project/vectorpath"
+
+	"github.com/omniskop/firefly/cmd/firefly/settings"
+
 	"github.com/omniskop/firefly/pkg/project"
 	"github.com/omniskop/firefly/pkg/storage"
 	"github.com/sirupsen/logrus"
@@ -128,27 +132,62 @@ func (e *Editor) CopyAction(bool) {
 	logrus.Info("copied elements")
 }
 
+// PasteAction gets called when the user initiates a paste.
+// When there are elements in the clipboard it will put them in the scene according to the current paste mode and
+// automatically select them while dropping the previous selection.
 func (e *Editor) PasteAction(bool) {
-	if e.clipboard == nil {
+	if len(e.clipboard) == 0 {
 		return
 	}
 	e.stage.selection.clear()
 
-	// to be able to paste the elements while maintaining relative positioning
-	// we need to figure out the earliest origin of the elements in the clipboard
-	var earliestPosition = math.Inf(1)
+	// To paste all elements at a different location but still relative to each other we first measure the bounding box
+	// of all elements.
+	bounds := e.clipboard[0].Shape.Bounds() // as a note: can't use infinity rect here or it will cause NaN through calculations
 	for _, cbElement := range e.clipboard {
-		if cbElement.Shape.Origin().T < earliestPosition {
-			earliestPosition = cbElement.Shape.Origin().T
-		}
+		bounds = bounds.United(cbElement.Shape.Bounds())
+	}
+
+	pasteMode := settings.GetString("editor/pasteMode")
+	// There are 3 different paste modes:
+	// "mouse"
+	// 		Pastes the elements as close to the mouse position as possible but without making the elements
+	//		leave the stage area. If the copied elements are already partially outside of the stage that will be used
+	//		as a limit instead.
+	// "needle"
+	//      Paste the elements with the earliest at the current needle position and keep the same position axis.
+	// "auto"
+	// 		Uses "needle" mode while playing and "mouse" when paused.
+
+	// for the mouse mode we will now calculate the starting position for the paste
+	var newBoundsLocation vectorpath.Point
+	if pasteMode == "mouse" || (pasteMode == "auto" && !e.playing) {
+		// Get mouse position in scene coordinates.
+		// This will even give correct coordinates when the mouse is outside of the window.
+		mousePos := vpPoint(e.stage.MapToScene(e.stage.MapFromGlobal(gui.QCursor_Pos())))
+
+		// Calculate the ideal position for the element's bounds in regards to the cursor
+		newBoundsLocation = vectorpath.Point{P: mousePos.P - bounds.Dimensions.P*0.5, T: mousePos.T - bounds.Dimensions.T*0.5}
+		// Make sure that this is not outside of the scene or at least not further outside than the copied elements.
+		// Left Bounds
+		newBoundsLocation.P = math.Max(newBoundsLocation.P, math.Min(bounds.Location.P, 0))
+		// Right Bounds
+		newBoundsLocation.P = math.Min(newBoundsLocation.P+bounds.Dimensions.P, math.Max(bounds.End().P, 1)) - bounds.Dimensions.P
 	}
 
 	for _, cbElement := range e.clipboard {
 		element := cbElement.Copy()
 		origin := element.Shape.Origin()
-		// get calculate the offset of this element to the earliest position and add that to the current time
-		origin.T = e.Time() + (origin.T - earliestPosition)
-		//origin.T = e.Time()
+
+		if pasteMode == "mouse" || (pasteMode == "auto" && !e.playing) {
+			// adjust this element's position according to the newBoundsLocation that has been calculated earlier
+			origin.T = newBoundsLocation.T + (origin.T - bounds.Location.T)
+			origin.P = newBoundsLocation.P + (origin.P - bounds.Location.P)
+		} else if pasteMode == "needle" || (pasteMode == "auto" && e.playing) {
+			// get calculate the offset of this element to the earliest position and add that to the current time
+			origin.T = e.Time() + (origin.T - bounds.Location.T)
+		}
+
 		element.Shape.SetOrigin(origin)
 		element.ZIndex += zIndexSteps // increase ZIndex by one step
 		e.stage.selection.add(e.stage.addElement(element))

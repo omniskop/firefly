@@ -90,6 +90,25 @@ func (r Rect) IncludesTime(time float64) bool {
 	return r.Location.T < time && r.Location.T+r.Dimensions.T > time
 }
 
+// End returns the opposite corner of this rectangles location (Location + Dimensions)
+func (r Rect) End() Point {
+	return Point{P: r.Location.P + r.Dimensions.P, T: r.Location.T + r.Dimensions.T}
+}
+
+func (r Rect) United(other Rect) Rect {
+	newLocation := Point{
+		P: math.Min(r.Location.P, other.Location.P),
+		T: math.Min(r.Location.T, other.Location.T),
+	}
+	return Rect{
+		Location: newLocation,
+		Dimensions: Point{
+			P: math.Max(r.Location.P+r.Dimensions.P, other.Location.P+other.Dimensions.P) - newLocation.P,
+			T: math.Max(r.Location.T+r.Dimensions.T, other.Location.T+other.Dimensions.T) - newLocation.T,
+		},
+	}
+}
+
 // Path contains segments that are positioned relative to the Start
 type Path struct {
 	Start    Point // TODO: check if this can be removed

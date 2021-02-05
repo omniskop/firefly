@@ -16,7 +16,32 @@ Rectangle {
     ColumnLayout {
         id: columnLayout
         width: parent.width
-        spacing: 20
+
+        GroupBox {
+            title: "Editor"
+            Layout.fillWidth: true
+
+            ColumnLayout {
+                width: parent.width
+
+                GridLayout {
+                    columns: 2
+                    columnSpacing: 10
+
+                    Label {
+                        text: "Paste Elements:"
+                    }
+
+                    ComboBox {
+                        model: [qsTr("Auto"), qsTr("at Mouse"), qsTr("at Needle")]
+                        Layout.fillWidth: true
+                        currentIndex: ["auto", "mouse", "needle"].indexOf(Model.editorPasteMode)
+
+                        onActivated: Model.editorPasteMode = ["auto", "mouse", "needle"][index]
+                    }
+                }
+            }
+        }
 
         GroupBox {
             id: groupBox

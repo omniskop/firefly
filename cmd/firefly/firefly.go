@@ -72,7 +72,10 @@ func versionCheck() {
 		settings.Remove("ledCount")
 		fallthrough
 	case "0.1.1":
+		settings.Set("editor/pasteMode", "auto")
+		fallthrough
+	case "0.1.2":
 	}
 
-	settings.Set("version", "0.1.1")
+	settings.Set("version", "0.1.2")
 }

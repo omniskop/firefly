@@ -27,6 +27,9 @@ func (s *WLEDStreamer) Stream(frame scanner.Frame) {
 	// In the future it could be expanded to add support for more wled protocols.
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+	if s.destination == nil {
+		return
+	}
 
 	var packet = make([]byte, 2+3*len(frame.Pixels))
 	packet[0] = 2   // 2 = DRGB protocol

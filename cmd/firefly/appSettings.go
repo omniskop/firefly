@@ -147,6 +147,8 @@ func (m *mappingModel) setScannerMapping(mapping *scanner.Mapping) {
 type appSettingsModel struct {
 	core.QObject
 
+	_ string `property:"editorPasteMode"`
+
 	_ bool   `property:"liveLedStripEnabled"`
 	_ string `property:"liveLedStripAddress"`
 	_ int    `property:"liveLedStripPort"`
@@ -161,6 +163,7 @@ type appSettingsModel struct {
 }
 
 func (m *appSettingsModel) init() {
+	m.SetEditorPasteMode(settings.GetString("editor/pasteMode"))
 	m.SetLiveLedStripEnabled(settings.GetBool("liveLedStrip/enabled"))
 	m.SetLiveLedStripAddress(settings.GetString("liveLedStrip/address"))
 	m.SetLiveLedStripPort(settings.GetInt("liveLedStrip/port"))
@@ -186,6 +189,7 @@ func mappingIsLinear(m *scanner.Mapping) bool {
 }
 
 func (m *appSettingsModel) save() {
+	settings.Set("editor/pasteMode", m.EditorPasteMode())
 	settings.Set("liveLedStrip/enabled", m.IsLiveLedStripEnabled())
 	settings.Set("liveLedStrip/address", m.LiveLedStripAddress())
 	settings.Set("liveLedStrip/port", m.LiveLedStripPort())
@@ -241,6 +245,7 @@ func NewAppSettingsWindow() error {
 }
 
 func restoreDefaultSettings() {
+	settings.Set("editor/pasteMode", "auto")
 	settings.Set("liveLedStrip/enabled", false)
 	settings.Set("liveLedStrip/address", "127.0.0.1")
 	settings.Set("liveLedStrip/port", "20202")
