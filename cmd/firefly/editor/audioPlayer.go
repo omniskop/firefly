@@ -27,9 +27,11 @@ type rawAudio struct {
 type audioPlayer struct {
 	*multimedia.QMediaPlayer
 	raw            rawAudio
+	timeCache      float64
 	onTimeChangedF func(t float64)
 	onReadyF       func()
 	onErrorF       func(error)
+	onEndedF       func()
 }
 
 func NewAudioPlayer(mediapath string) *audioPlayer {
@@ -88,7 +90,8 @@ func (p *audioPlayer) pause() {
 }
 
 func (p *audioPlayer) time() float64 {
-	return float64(p.Position()) / 1000 // milliseconds to seconds
+	return p.timeCache
+	// return float64(p.Position()) / 1000 // milliseconds to seconds
 }
 
 func (p *audioPlayer) setTime(value float64) {
@@ -132,10 +135,15 @@ func (p *audioPlayer) onError(f func(error)) {
 	p.onErrorF = f
 }
 
+func (p *audioPlayer) onEnded(f func()) {
+	p.onEndedF = f
+}
+
 func (p *audioPlayer) positionChangedEvent(position int64) {
+	p.timeCache = float64(position) / 1000 // milliseconds to seconds
 	// position in ms
 	if p.onTimeChangedF != nil {
-		p.onTimeChangedF(float64(position) / 1000)
+		p.onTimeChangedF(p.timeCache)
 	}
 }
 
@@ -184,6 +192,9 @@ func (p *audioPlayer) mediaStatusChangedEvent(status multimedia.QMediaPlayer__Me
 		logrus.Info("[Audio] Media Status: Buffered Media")
 	case multimedia.QMediaPlayer__EndOfMedia:
 		logrus.Info("[Audio] Media Status: End Of Media")
+		if p.onEndedF != nil {
+			p.onEndedF()
+		}
 	case multimedia.QMediaPlayer__InvalidMedia:
 		logrus.Info("[Audio] Media Status: Invalid Media")
 	}
