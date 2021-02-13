@@ -68,6 +68,7 @@ func New(proj *project.Project, applicationCallbacks map[string]func()) *Editor 
 	gui.NewQWindowFromPointer(window.WindowHandle().Pointer()).ConnectScreenChanged(edit.ScreenChangedEvent)
 	edit.stage.updateNeedlePosition() // this needs to be called after the window is shown
 	player.onTimeChanged(edit.stage.setTime)
+	player.onEnded(edit.playerEnded)
 
 	size := gui.QGuiApplication_PrimaryScreen().AvailableSize()
 	size.SetWidth(int(float64(size.Width()) * 0.6))
@@ -129,6 +130,23 @@ patternsOfDifferentType:
 	e.userActions.colorB.SetDisabled(true)
 }
 
+// playerEnded gets called by the audio player when the audio has reached it's end
+func (e *Editor) playerEnded() {
+	e.playing = false
+	e.playbackStatusChanged()
+}
+
+// playbackStatusChanged should get called whenever playback gets started or paused
+func (e *Editor) playbackStatusChanged() {
+	if e.playing {
+		e.stage.SetViewportUpdateMode(widgets.QGraphicsView__NoViewportUpdate)
+		e.stage.frameTimer.Start2()
+	} else {
+		e.stage.SetViewportUpdateMode(widgets.QGraphicsView__MinimalViewportUpdate)
+		e.stage.frameTimer.Stop()
+	}
+}
+
 func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
 	switch core.Qt__Key(event.Key()) {
 	case core.Qt__Key_Space:
@@ -140,6 +158,7 @@ func (e *Editor) KeyPressEvent(event *gui.QKeyEvent) {
 			e.playing = true
 			e.player.play()
 		}
+		e.playbackStatusChanged()
 	case core.Qt__Key_Minus:
 		e.stage.scaleScene(0.9)
 	case core.Qt__Key_Plus:

@@ -34,10 +34,10 @@ type stage struct {
 	scene        *widgets.QGraphicsScene
 	projectScene *project.Scene
 	editor       *Editor
-	drawLimiter  *drawLimiter
 	duration     float64
 	selection    elementList
 	items        map[unsafe.Pointer]*elementGraphicsItem
+	frameTimer   *core.QTimer // used during playback to draw new frames
 
 	creationElement *elementGraphicsItem
 	creationStart   vectorpath.Point
@@ -54,28 +54,27 @@ type stage struct {
 }
 
 func newStage(editor *Editor, projectScene *project.Scene, duration float64) *stage {
-	scene := widgets.NewQGraphicsScene(nil)
+	view := widgets.NewQGraphicsView(editor.window)
+	scene := widgets.NewQGraphicsScene(view)
 	scene.SetSceneRect2(0, 0, editorViewWidth, duration)
-	scene.SetBackgroundBrush(gui.NewQBrush3(gui.NewQColor3(14, 15, 16, 255), core.Qt__SolidPattern))
-
-	view := widgets.NewQGraphicsView(nil)
 
 	s := stage{
-		QGraphicsView: view,
-		scene:         scene,
-		projectScene:  projectScene,
-		drawLimiter: newDrawLimiter(16*time.Millisecond, func(reg *gui.QRegion) {
-			//view.Update4(reg)
-			view.Update()
-		}),
+		QGraphicsView:  view,
+		scene:          scene,
+		projectScene:   projectScene,
 		editor:         editor,
 		duration:       duration,
 		needlePipeline: streamer.NewPipeline(scanner.New(projectScene, 30), streamer.New(nil)),
 		selection:      elementList{onChange: editor.selectionChanged},
 		items:          make(map[unsafe.Pointer]*elementGraphicsItem),
+		frameTimer:     core.NewQTimer(scene),
 	}
 
-	s.SetAttribute(core.Qt__WA_OpaquePaintEvent, true)
+	s.frameTimer.SetInterval(16)
+	s.frameTimer.ConnectTimeout(func() {
+		s.redraw()
+	})
+
 	settings.OnChange("liveLedStrip/enabled", s.updatePipeline)
 	settings.OnChange("liveLedStrip/address", s.updatePipeline)
 	settings.OnChange("liveLedStrip/port", s.updatePipeline)
@@ -85,6 +84,8 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 	s.SetObjectName("mainEditorView")
 	s.SetScene(scene)
 	s.createElements()
+	s.SetAttribute(core.Qt__WA_NoSystemBackground, true) // should theoretically improve performance but...
+	s.SetAttribute(core.Qt__WA_OpaquePaintEvent, true)   // ...does not seem to actually do anything
 	//s.SetViewport(widgets.NewQOpenGLWidget(nil, 0))
 	s.SetRenderHints(gui.QPainter__Antialiasing | gui.QPainter__SmoothPixmapTransform)
 	s.SetVerticalScrollBarPolicy(core.Qt__ScrollBarAlwaysOn)
@@ -110,7 +111,7 @@ func newStage(editor *Editor, projectScene *project.Scene, duration float64) *st
 	s.ConnectDrawBackground(s.drawBackground)
 	s.ConnectDrawForeground(s.drawForeground)
 	s.ConnectScrollContentsBy(s.scrollContentsByEvent)
-	//s.ConnectPaintEvent(s.paintEvent)
+	s.ConnectPaintEvent(s.paintEvent)
 	s.scene.ConnectChanged(s.sceneChanged)
 
 	scene.ConnectMousePressEvent(s.sceneMousePressEvent)
@@ -380,7 +381,7 @@ func (s *stage) mapToTime(diff int) float64 {
 }
 
 func (s *stage) redraw() {
-	s.scene.Update(s.sceneViewport())
+	s.Viewport().Update()
 }
 
 func (s *stage) sceneChanged([]*core.QRectF) {
@@ -438,15 +439,8 @@ func (s *stage) showTimeSpan(timeSpan float64) {
 }
 
 var lastPaintEvent time.Time
-var toggle bool
 
 func (s *stage) paintEvent(event *gui.QPaintEvent) {
-
-	if canDraw, newEvent := s.drawLimiter.canDraw(event); canDraw {
-		event = newEvent
-	} else {
-		return
-	}
 	sinceLast := time.Since(lastPaintEvent)
 	lastPaintEvent = time.Now()
 
@@ -454,7 +448,7 @@ func (s *stage) paintEvent(event *gui.QPaintEvent) {
 	t := time.Now()
 	s.PaintEventDefault(event)
 	dTime := time.Since(t)
-	fmt.Println(sinceLast, dTime, regionString(event.Region()))
+	fmt.Println(sinceLast, "\t", dTime, "\t", regionString(event.Region()), s.TestAttribute(core.Qt__WA_NoSystemBackground))
 }
 
 func regionString(reg *gui.QRegion) string {
@@ -717,14 +711,14 @@ func (s *stage) drawBackground(painter *gui.QPainter, rect *core.QRectF) {
 	painter.DrawLine(core.NewQLineF3(0, s.duration, editorViewWidth, s.duration))
 
 	// draw audio waveform
-	painter.SetPen(noPen)
-	painter.SetBrush(gui.NewQBrush3(NewQColorFromColor(color.RGBA{82, 84, 87, 255}), core.Qt__SolidPattern))
-	for y := 0; y < s.Viewport().Height(); y++ {
-		rect := s.MapToScene6(s.Viewport().Width()-audioSideStripe, y, audioSideStripe, 1).BoundingRect()
-		sample := s.editor.player.getSampleAt(rect.Y(), rect.Height())
-		rect = s.MapToScene6(s.Viewport().Width()-audioSideStripe, y, int(float64(audioSideStripe)*sample), 1).BoundingRect()
-		painter.DrawRect(rect)
-	}
+	//painter.SetPen(noPen)
+	//painter.SetBrush(gui.NewQBrush3(NewQColorFromColor(color.RGBA{82, 84, 87, 255}), core.Qt__SolidPattern))
+	//for y := 0; y < s.Viewport().Height(); y++ {
+	//	rect := s.MapToScene6(s.Viewport().Width()-audioSideStripe, y, audioSideStripe, 1).BoundingRect()
+	//	sample := s.editor.player.getSampleAt(rect.Y(), rect.Height())
+	//	rect = s.MapToScene6(s.Viewport().Width()-audioSideStripe, y, int(float64(audioSideStripe)*sample), 1).BoundingRect()
+	//	painter.DrawRect(rect)
+	//}
 
 	// draw stage shadow
 	painter.SetPen(noPen)
@@ -833,54 +827,4 @@ func (s *stage) drawForeground(painter *gui.QPainter, rect *core.QRectF) {
 	pen.SetCosmetic(true)
 	painter.SetPen(pen)
 	painter.DrawLine(core.NewQLineF2(needleStart, needleStop))
-}
-
-// the drawLimiter will limit the frequency at which the scene will be redrawn
-type drawLimiter struct {
-	timer     *time.Timer
-	lastCall  time.Time
-	running   bool
-	call      func(*gui.QRegion)
-	region    *gui.QRegion
-	frameTime time.Duration
-}
-
-// newDrawLimiter returns a new drawLimiter with the desired frameTime and the function that should be limited
-func newDrawLimiter(frameTime time.Duration, call func(*gui.QRegion)) *drawLimiter {
-	out := &drawLimiter{
-		timer:     time.NewTimer(time.Second),
-		call:      call,
-		frameTime: frameTime,
-		region:    gui.NewQRegion(),
-	}
-	out.timer.Stop()
-	return out
-}
-
-// canDraw returns true if the set frame time has passed since the last call
-// This method is not thread safe.
-func (lt *drawLimiter) canDraw(event *gui.QPaintEvent) (bool, *gui.QPaintEvent) {
-	sinceLast := time.Since(lt.lastCall)
-	if sinceLast > lt.frameTime {
-		lt.lastCall = time.Now()
-		lt.timer.Stop()
-		event = gui.NewQPaintEvent(lt.region.United(event.Region()))
-		lt.region = gui.NewQRegion()
-		return true, event
-	} else if !lt.running {
-		lt.running = true
-		lt.timer.Stop()
-		lt.timer.Reset(lt.frameTime - sinceLast)
-		go func() {
-			<-lt.timer.C
-			if lt.call != nil {
-				lt.call(lt.region)
-				lt.region = gui.NewQRegion()
-			}
-			lt.running = false
-		}()
-		lt.region = lt.region.United(event.Region())
-		return false, nil
-	}
-	return false, nil
 }
