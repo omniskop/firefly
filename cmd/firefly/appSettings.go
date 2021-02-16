@@ -48,8 +48,8 @@ func (m *mappingModel) addPoint(newPos float32) {
 		if p > newPos {
 			didAdd = true
 			newPositions = append(newPositions, newPos, p)
-			a := int(math.Ceil(float64(m.leds[i] / 2)))
-			b := int(math.Floor(float64(m.leds[i] / 2)))
+			a := int(math.Ceil(float64(m.leds[i]) / 2))
+			b := int(math.Floor(float64(m.leds[i]) / 2))
 			newLeds = append(newLeds, a, b)
 		} else {
 			newPositions = append(newPositions, p)
@@ -58,7 +58,7 @@ func (m *mappingModel) addPoint(newPos float32) {
 	}
 	if !didAdd {
 		newPositions = append(newPositions, newPos)
-		leds := float64(m.leds[len(m.leds)-1] / 2)
+		leds := float64(m.leds[len(m.leds)-1]) / 2
 		a := int(math.Ceil(leds))
 		b := int(math.Floor(leds))
 		newLeds = append(newLeds, a, b)
