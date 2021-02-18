@@ -20,8 +20,9 @@ PLATFORM_DARWIN="darwin"
 
 all: rcc moc build
 
+# the ldflags speed up the compilation
 build:
-	$(QT_ENV) $(BUILD_ENV) $(GOBUILD) -mod=vendor -o $(BINARY_NAME) -v $(PACKAGE)
+	$(QT_ENV) $(BUILD_ENV) $(GOBUILD) -ldflags '-s -w' -mod=vendor -o $(BINARY_NAME) -v $(PACKAGE)
 
 deploy_windows: rcc_windows
 	$(QTDEPLOY) -docker build $(PLATFORM_WINDOWS) $(PACKAGE)
