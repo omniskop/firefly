@@ -8,7 +8,7 @@ T.ComboBox {
     id: control
 
     implicitHeight: 24
-    implicitWidth: 200
+    implicitWidth: Math.max(mainText.contentWidth + 50, 200)
 
     hoverEnabled: true
     property int popupPadding: 5
@@ -35,14 +35,15 @@ T.ComboBox {
 
     contentItem: MouseArea {
         onPressed: mouse.accepted = false;
-        onWheel: {
-            if (wheel.pixelDelta.y < 0 || wheel.angleDelta.y < 0) {
-                control.currentIndex = (control.currentIndex + 1) % delegateModel.count
-            } else {
-                control.currentIndex = (control.currentIndex - 1 + delegateModel.count) % delegateModel.count
-            }
-        }
+//        onWheel: {
+//            if (wheel.pixelDelta.y < 0 || wheel.angleDelta.y < 0) {
+//                control.currentIndex = (control.currentIndex + 1) % delegateModel.count
+//            } else {
+//                control.currentIndex = (control.currentIndex - 1 + delegateModel.count) % delegateModel.count
+//            }
+//        }
         T.TextField {
+            id: mainText
             anchors {
                 fill: parent
                 leftMargin: control.mirrored ? 12 : 1
@@ -57,8 +58,6 @@ T.ComboBox {
             validator: control.validator
             renderType: Window.devicePixelRatio % 1 !== 0 ? Text.QtRendering : Text.NativeRendering
             color: Shared.lighterTextColor
-            // selectionColor: Kirigami.Theme.highlightColor
-            // selectedTextColor: Kirigami.Theme.highlightedTextColor
             selectByMouse: true
 
             font: control.font
@@ -71,8 +70,6 @@ T.ComboBox {
     background: Rectangle {
         anchors.fill: parent
         radius: 5
-        border.width: 1
-        border.color: "#30000000"
         color: Shared.interactableColor
 
         LinearGradient {

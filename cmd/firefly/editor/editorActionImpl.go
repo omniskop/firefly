@@ -1,8 +1,13 @@
 package editor
 
 import (
+	"fmt"
 	"image/color"
+	"io"
 	"math"
+	"os"
+	"path"
+	"path/filepath"
 	"reflect"
 
 	"github.com/omniskop/firefly/pkg/project/vectorpath"
@@ -285,24 +290,33 @@ func (e *Editor) moveToTopAction(bool) {
 }
 
 func (e *Editor) SaveAction(bool) {
-	if e.SaveLocation == "" {
+	if e.options.SaveLocation == "" {
 		e.SaveAsAction(false)
 		return
 	}
-	err := storage.SaveFile(e.SaveLocation, e.project)
+	err := storage.SaveFile(e.options.SaveLocation, e.project)
 	if err != nil {
 		logrus.Error(err)
+	}
+	if e.options.CopyAudioOnSave {
+		e.options.CopyAudioOnSave = false
+		audioFileName := path.Join(
+			filepath.Dir(e.options.SaveLocation),
+			fmt.Sprintf("%s - %s%s", e.project.Audio.Title, e.project.Audio.Author, path.Ext(e.player.mediaPath)),
+		)
+
+		err := copyFile(audioFileName, e.player.mediaPath)
+		if err != nil {
+			logrus.Errorf("copy audio file: %w", err)
+		}
 	}
 }
 
 func (e *Editor) SaveAsAction(bool) {
 	//path := widgets.NewQFileDialog(e.window, core.Qt__Dialog)
-	path := widgets.QFileDialog_GetSaveFileName(e.window, "Save the Project", "./project.ffp", "", "", 0)
-	err := storage.SaveFile(path, e.project)
-	if err != nil {
-		logrus.Error(err)
-	}
-	e.SaveLocation = path
+	savePath := widgets.QFileDialog_GetSaveFileName(e.window, "Save the Project", "./project.ffp", "", "", 0)
+	e.options.SaveLocation = savePath
+	e.SaveAction(false)
 }
 
 func (e *Editor) OpenAction(bool) {
@@ -329,4 +343,21 @@ func (e *Editor) mirrorElementAction(bool) {
 		element.Mirror()
 		e.stage.selection.add(e.stage.addElement(element))
 	}
+}
+
+func copyFile(dst, src string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	dstFile, err := os.Create(dst)
+	if err != nil && !os.IsExist(err) {
+		return err
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile)
+	return err
 }

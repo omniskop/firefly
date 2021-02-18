@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -118,6 +119,7 @@ func OpenLaunchWindow() {
 		launchWindow, err = newLaunchWindow()
 		if err != nil {
 			logrus.Errorf("unable to create launch window: %v", err)
+			os.Exit(1)
 		}
 	}
 	launchWindow.Show()

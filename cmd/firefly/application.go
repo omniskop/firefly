@@ -69,7 +69,8 @@ func openProjectPath(fileName string) error {
 		return err
 	}
 	addRecentFile(newRecentFileDetailed(project.Audio.Title, project.Audio.Author, fileName))
-	edit := editor.New(project, ApplicationCallbacks)
-	edit.SaveLocation = fileName
+	editor.New(project, editor.Options{
+		SaveLocation: fileName,
+	}, ApplicationCallbacks)
 	return nil
 }

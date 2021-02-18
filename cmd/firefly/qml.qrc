@@ -11,10 +11,14 @@
         <file>assets/qml/Styles/Dark/ComboBox.qml</file>
         <file>assets/qml/Styles/Dark/Popup.qml</file>
         <file>assets/qml/Styles/Dark/ItemDelegate.qml</file>
+        <file>assets/qml/Styles/Dark/TabBar.qml</file>
+        <file>assets/qml/Styles/Dark/TabButton.qml</file>
 
         <file>assets/qml/LaunchWindow.qml</file>
         <file>assets/qml/Grabber.qml</file>
         <file>assets/qml/MappingEditor.qml</file>
         <file>assets/qml/AppSettingsWindow.qml</file>
+        <file>assets/qml/GeneralSettings.qml</file>
+        <file>assets/qml/EditorSettings.qml</file>
     </qresource>
 </RCC>

@@ -1,10 +1,13 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path"
+
+	"github.com/omniskop/firefly/cmd/firefly/settings"
 
 	"github.com/omniskop/firefly/cmd/firefly/audio"
 
@@ -68,6 +71,9 @@ func NewProjectSetupWindow(parent *widgets.QWidget) (*widgets.QDialog, error) {
 		err := createProject(interpretText.Text(), titleText.Text(), selectedAudioFile)
 		if err != nil {
 			logrus.Error(err)
+			if errors.Is(err, audio.NoProviderErr) {
+				err = fmt.Errorf("The audio file could not be opened.")
+			}
 			widgets.NewQMessageBox2(widgets.QMessageBox__Warning, "Create Project", fmt.Sprintf("The project could not be created.\n%v", err), widgets.QMessageBox__Ok, nil, core.Qt__Dialog).Exec()
 		}
 	})
@@ -78,17 +84,23 @@ func NewProjectSetupWindow(parent *widgets.QWidget) (*widgets.QDialog, error) {
 }
 
 func createProject(interpretText string, titleText string, selectedAudioFile string) error {
-	audioFolder := path.Join(core.QDir_CurrentPath(), "AudioFiles")
-	err := os.Mkdir(audioFolder, 0755|os.ModeDir)
-	if err != nil && !os.IsExist(err) {
-		fmt.Errorf("create project: create audio folder: %w", err)
-	}
+	audioFileSources := settings.GetStrings("audio/fileSources")
+	var audioFilePath string
+	if len(audioFileSources) > 0 && settings.GetString("audio/newProjectAudioCopy") == "audioSources" {
+		audioFolder := audioFileSources[0]
+		err := os.MkdirAll(audioFolder, 0755|os.ModeDir)
+		if err != nil {
+			return fmt.Errorf("create project: create audio folder: %w", err)
+		}
 
-	audioFileName := path.Join(audioFolder, fmt.Sprintf("%s - %s%s", titleText, interpretText, path.Ext(selectedAudioFile)))
+		audioFilePath = path.Join(audioFolder, fmt.Sprintf("%s - %s%s", titleText, interpretText, path.Ext(selectedAudioFile)))
 
-	err = copyFile(audioFileName, selectedAudioFile)
-	if err != nil {
-		return fmt.Errorf("create project: copy audio file: %w", err)
+		err = copyFile(audioFilePath, selectedAudioFile)
+		if err != nil {
+			return fmt.Errorf("create project: copy audio file: %w", err)
+		}
+	} else {
+		audioFilePath = selectedAudioFile
 	}
 
 	projAudio := project.Audio{
@@ -98,10 +110,8 @@ func createProject(interpretText string, titleText string, selectedAudioFile str
 		File:   nil,
 	}
 
-	player, err := audio.Open(projAudio)
-	if err != nil {
-		return fmt.Errorf("create project: load audio: %w", err)
-	}
+	// load a player to make sure that the file is valid
+	player := audio.NewFilePlayer(audioFilePath)
 
 	player.OnReady(func() {
 		editor.New(&project.Project{
@@ -113,6 +123,9 @@ func createProject(interpretText string, titleText string, selectedAudioFile str
 			Scene:          project.Scene{},
 			Audio:          projAudio,
 			AudioOffset:    0,
+		}, editor.Options{
+			AudioLocation:   audioFilePath,
+			CopyAudioOnSave: settings.GetString("audio/newProjectAudioCopy") == "projectFile",
 		}, ApplicationCallbacks)
 	})
 

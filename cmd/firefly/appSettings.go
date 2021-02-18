@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"path"
 	"strings"
 
 	"github.com/omniskop/firefly/pkg/scanner"
@@ -144,8 +145,87 @@ func (m *mappingModel) setScannerMapping(mapping *scanner.Mapping) {
 	}
 }
 
+// ====
+
+type audioSource struct {
+	core.QObject
+
+	_ string `property:"path"`
+}
+
+type audioSourceModel struct {
+	core.QAbstractListModel
+
+	_ func() `constructor:"init"`
+
+	_ []string `property:"paths"`
+	_ string   `property:"newProjectAudioCopy"`
+
+	_ func(string)  `slot:"add,auto"`
+	_ func(row int) `slot:"remove,auto"`
+	_ func(int)     `slot:"setPrimary,auto"`
+}
+
+func (m *audioSourceModel) init() {
+	m.ConnectData(m.data)
+	m.ConnectRowCount(m.rowCount)
+	m.SetPaths(settings.GetStrings("audio/fileSources"))
+	m.SetNewProjectAudioCopy(settings.GetString("audio/newProjectAudioCopy"))
+}
+
+func (m *audioSourceModel) data(index *core.QModelIndex, role int) *core.QVariant {
+	if !index.IsValid() {
+		return core.NewQVariant()
+	}
+
+	if index.Row() >= len(m.Paths()) {
+		return core.NewQVariant()
+	}
+
+	var p = m.Paths()[index.Row()]
+
+	return core.NewQVariant1(p)
+}
+
+func (m *audioSourceModel) rowCount(parent *core.QModelIndex) int {
+	return len(m.Paths())
+}
+
+func (m *audioSourceModel) add(new string) {
+	m.BeginInsertRows(core.NewQModelIndex(), len(m.Paths()), len(m.Paths()))
+	m.SetPaths(append(m.Paths(), new))
+	fmt.Println(m.Paths())
+	m.EndInsertRows()
+}
+
+func (m *audioSourceModel) remove(row int) {
+	if row < 0 || row >= len(m.Paths()) {
+		return
+	}
+	m.BeginRemoveRows(core.NewQModelIndex(), row, row)
+	m.SetPaths(append(m.Paths()[:row], m.Paths()[row+1:]...))
+	m.EndRemoveRows()
+}
+
+func (m *audioSourceModel) setPrimary(row int) {
+	if row <= 0 || row >= len(m.Paths()) {
+		// don't do anything if the index is out of range or 0
+		return
+	}
+	m.BeginMoveRows(core.NewQModelIndex(), row, row, core.NewQModelIndex(), 0)
+	paths := m.Paths()
+	newPaths := append([]string{paths[row]}, paths[:row]...)
+	newPaths = append(newPaths, paths[row+1:]...)
+	m.SetPaths(newPaths)
+	m.EndMoveRows()
+}
+
+// ====
+
 type appSettingsModel struct {
 	core.QObject
+
+	_ audioSourceModel `property:"audioSources"`
 
 	_ string `property:"editorPasteMode"`
 
@@ -163,6 +243,8 @@ type appSettingsModel struct {
 }
 
 func (m *appSettingsModel) init() {
+	m.SetAudioSources(NewAudioSourceModel(m))
+
 	m.SetEditorPasteMode(settings.GetString("editor/pasteMode"))
 	m.SetLiveLedStripEnabled(settings.GetBool("liveLedStrip/enabled"))
 	m.SetLiveLedStripAddress(settings.GetString("liveLedStrip/address"))
@@ -189,6 +271,10 @@ func mappingIsLinear(m *scanner.Mapping) bool {
 }
 
 func (m *appSettingsModel) save() {
+	settings.Set("audio/fileSources", m.AudioSources().Paths())
+	fmt.Println(m.AudioSources().NewProjectAudioCopy())
+	settings.Set("audio/newProjectAudioCopy", m.AudioSources().NewProjectAudioCopy())
+
 	settings.Set("editor/pasteMode", m.EditorPasteMode())
 	settings.Set("liveLedStrip/enabled", m.IsLiveLedStripEnabled())
 	settings.Set("liveLedStrip/address", m.LiveLedStripAddress())
@@ -229,7 +315,7 @@ func NewAppSettingsWindow() error {
 		return fmt.Errorf("settings view could not be created: \r\n%s", strings.Join(out, "\r\n"))
 	}
 	view.SetResizeMode(quick.QQuickView__SizeRootObjectToView)
-	view.SetMinimumSize(core.NewQSize2(300, 360))
+	view.SetMinimumSize(core.NewQSize2(650, 470))
 	view.ConnectKeyPressEvent(func(ev *gui.QKeyEvent) {
 		if core.Qt__Key(ev.Key()) == core.Qt__Key_R && ev.Modifiers() == core.Qt__ControlModifier {
 			fmt.Println("reload")
@@ -245,6 +331,12 @@ func NewAppSettingsWindow() error {
 }
 
 func restoreDefaultSettings() {
+	musicLocation := core.QStandardPaths_WritableLocation(core.QStandardPaths__MusicLocation)
+	if musicLocation == "" {
+		settings.Set("audio/fileSources", []string{})
+	} else {
+		settings.Set("audio/fileSources", []string{path.Join(musicLocation, "Firefly Audio Files")})
+	}
 	settings.Set("editor/pasteMode", "auto")
 	settings.Set("liveLedStrip/enabled", false)
 	settings.Set("liveLedStrip/address", "127.0.0.1")

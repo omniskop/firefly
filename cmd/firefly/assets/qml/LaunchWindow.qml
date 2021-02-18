@@ -38,8 +38,8 @@ Rectangle {
 
         Button {
             id: newProject
+            fancy: true
             width: logo.width * 0.9
-            height: 32
             text: qsTr("New Project ...")
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: version.bottom
@@ -52,6 +52,7 @@ Rectangle {
 
         Button {
             id: openProject
+            fancy: true
             text: qsTr("Open Project ...")
             width: logo.width * 0.9
             anchors.horizontalCenter: parent.horizontalCenter
@@ -65,7 +66,7 @@ Rectangle {
 
         Button {
             id: button
-            y: 669
+            fancy: true
             text: qsTr("Settings")
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 20
@@ -106,6 +107,7 @@ Rectangle {
                 id: listView
                 boundsBehavior: Flickable.StopAtBounds
                 anchors.fill: parent
+                clip: true
                 delegate: Rectangle {
                     id: listItem
                     width: parent.width

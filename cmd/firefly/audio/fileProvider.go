@@ -71,18 +71,20 @@ type potentialFile struct {
 func GetFiles(basepath string) ([]potentialFile, []error) {
 	var files []potentialFile
 	var errs []error
-	filepath.Walk(basepath, func(path string, info os.FileInfo, err error) error {
-
+	filepath.Walk(basepath, func(currentPath string, info os.FileInfo, err error) error {
 		if err != nil {
 			errs = append(errs, err)
 			if info != nil && info.IsDir() {
 				return filepath.SkipDir
 			}
 		} else if !info.IsDir() {
-			files = append(files, potentialFile{
-				Path: path,
-				Info: info,
-			})
+			extension := path.Ext(currentPath)
+			if extension == ".wav" || extension == ".mp3" {
+				files = append(files, potentialFile{
+					Path: currentPath,
+					Info: info,
+				})
+			}
 		}
 		return nil
 	})

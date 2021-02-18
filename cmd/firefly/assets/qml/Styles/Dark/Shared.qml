@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick 2.12
 
 QtObject {
+    readonly property color voidBackgroundColor: "#202020" // behind the background
     readonly property color backgroundColor: "#38393A"
     readonly property color areaColor: "#444444"
     readonly property color interactableColor: "#7D7D7D"

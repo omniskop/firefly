@@ -2,6 +2,7 @@ package editor
 
 import (
 	"math"
+	"path/filepath"
 	"reflect"
 
 	"github.com/omniskop/firefly/pkg/project"
@@ -27,17 +28,32 @@ type Editor struct {
 
 	clipboard []*project.Element
 
-	SaveLocation string // the location where the file is saved
+	options Options
 }
 
-func New(proj *project.Project, applicationCallbacks map[string]func()) *Editor {
+type Options struct {
+	SaveLocation    string // Path to where the project should be saved to.
+	AudioLocation   string // Path to the audio file. Overrides the automatic search for the appropriate file.
+	CopyAudioOnSave bool   // Indicates that on the first save the audio file should be copied next to the project file.
+}
+
+func New(proj *project.Project, options Options, applicationCallbacks map[string]func()) *Editor {
 	window := widgets.NewQMainWindow(nil, 0)
 	window.SetMinimumSize2(300, 200)
 	window.SetWindowTitle("Firefly Editor")
 
-	audioPath, err := LocateAudioFile(proj.Audio)
+	var audioPath string
+	var err error
+	if options.AudioLocation != "" {
+		audioPath = options.AudioLocation
+	} else if options.SaveLocation != "" {
+		audioPath, err = LocateAudioFile(proj.Audio, filepath.Dir(options.SaveLocation))
+	} else {
+		audioPath, err = LocateAudioFile(proj.Audio)
+	}
 	if err != nil {
 		logrus.Error(err)
+		// TODO: show warning
 	}
 	player := NewAudioPlayer(audioPath)
 
@@ -49,6 +65,7 @@ func New(proj *project.Project, applicationCallbacks map[string]func()) *Editor 
 		player:               player,
 		playing:              false,
 		userActions:          newEditorActions(),
+		options:              options,
 	}
 	edit.userActions.connectToEditor(edit)
 	edit.stage = newStage(edit, &proj.Scene, proj.Duration)

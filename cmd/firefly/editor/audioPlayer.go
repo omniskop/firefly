@@ -3,8 +3,10 @@ package editor
 import (
 	"errors"
 	"fmt"
-	"path"
+	"os"
 	"strings"
+
+	"github.com/omniskop/firefly/cmd/firefly/settings"
 
 	"github.com/omniskop/firefly/cmd/firefly/audio"
 
@@ -18,6 +20,7 @@ import (
 type audioPlayer struct {
 	*multimedia.QMediaPlayer
 	probe          *multimedia.QAudioProbe
+	mediaPath      string
 	onTimeChangedF func(t float64)
 	onReadyF       func()
 	onErrorF       func(error)
@@ -27,6 +30,7 @@ func NewAudioPlayer(mediapath string) *audioPlayer {
 	player := audioPlayer{
 		QMediaPlayer: multimedia.NewQMediaPlayer(nil, multimedia.QMediaPlayer__LowLatency),
 		probe:        multimedia.NewQAudioProbe(nil),
+		mediaPath:    mediapath,
 	}
 
 	player.SetNotifyInterval(16)
@@ -133,11 +137,18 @@ func (p *audioPlayer) mediaStatusChangedEvent(status multimedia.QMediaPlayer__Me
 	}
 }
 
-// LocateAudioFile searched for an audio file that matches the given Audio struct and returns it's path
-func LocateAudioFile(audioInfo project.Audio) (string, error) {
-	files, errs := audio.GetAllFiles([]string{path.Join(core.QDir_CurrentPath(), "AudioFiles")})
+// LocateAudioFile searched for an audio file that matches the given Audio struct and returns it's path.
+// The function will check all locations set by the user but can optionally also take additional ones.
+func LocateAudioFile(audioInfo project.Audio, locations ...string) (string, error) {
+	locations = append(locations, settings.GetStrings("audio/fileSources")...)
+	files, errs := audio.GetAllFiles(locations)
 	for _, err := range errs {
-		return "", fmt.Errorf("locate audio file: %w", err)
+		var pe *os.PathError
+		if errors.As(err, &pe) && os.IsNotExist(err) {
+			logrus.Warnf("audio path %q does not exist", pe.Path)
+		} else {
+			logrus.Errorf("locate audio file: %v", err)
+		}
 	}
 
 	audioInfo.Title = strings.ToLower(audioInfo.Title)

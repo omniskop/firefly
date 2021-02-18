@@ -4,14 +4,12 @@ import (
 	"encoding/json"
 	"flag"
 	"os"
+	"path"
 	"runtime"
 
 	"github.com/omniskop/firefly/pkg/scanner"
 
 	"github.com/omniskop/firefly/cmd/firefly/settings"
-
-	"github.com/omniskop/firefly/cmd/firefly/editor"
-	"github.com/omniskop/firefly/pkg/storage"
 
 	"github.com/therecipe/qt/core"
 
@@ -42,14 +40,11 @@ func main() {
 	logrus.Info("Application created")
 
 	if fileName := flag.Arg(0); fileName != "" {
-		project, err := storage.LoadFile(fileName)
+		err := openProjectPath(fileName)
 		if err != nil {
 			logrus.Error(err)
 			return
 		}
-		addRecentFile(newRecentFileDetailed(project.Audio.Title, project.Audio.Author, fileName))
-		edit := editor.New(project, ApplicationCallbacks)
-		edit.SaveLocation = fileName
 	} else {
 		OpenLaunchWindow()
 	}
@@ -75,7 +70,18 @@ func versionCheck() {
 		settings.Set("editor/pasteMode", "auto")
 		fallthrough
 	case "0.1.2":
+		// the previously hardcoded path for audio files
+		audioLocations := []string{path.Join(core.QDir_CurrentPath(), "AudioFiles")}
+		// new default location in the documents folder
+		musicLocation := core.QStandardPaths_WritableLocation(core.QStandardPaths__MusicLocation)
+		if musicLocation != "" {
+			audioLocations = append(audioLocations, path.Join(musicLocation, "Firefly Audio Files"))
+		}
+		settings.Set("audio/fileSources", audioLocations)
+		settings.Set("audio/newProjectAudioCopy", "audioSources")
+		fallthrough
+	case "0.1.3":
 	}
 
-	settings.Set("version", "0.1.2")
+	settings.Set("version", "0.1.3")
 }
