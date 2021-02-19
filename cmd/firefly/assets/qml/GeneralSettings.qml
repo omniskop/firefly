@@ -32,7 +32,15 @@ ColumnLayout {
                 model: Model.audioSources
 
                 delegate: Text {
-                    text: model.display == undefined ? "[undefined]" : ((index == 0 ? "* " : "") + model.display)
+                    text: {
+                        if (Model.audioSources.newProjectAudioCopy == "audioSources" && index == 0) {
+                            // if we use audio sources as a copy target and we are at index zero
+                            // add a star to indicate that this is the primary source
+                            return "★ " + model.display
+                        } else {
+                            return model.display
+                        }
+                    }
                     color: parent.ListView.isCurrentItem ? Shared.lighterTextColor : Shared.textColor
                     width: parent.width
                     padding: 3
@@ -73,6 +81,7 @@ ColumnLayout {
                     small: true
                     text: qsTr("Primary")
                     onClicked: Model.audioSources.setPrimary(audioSourceList.currentIndex)
+                    visible: Model.audioSources.newProjectAudioCopy == "audioSources" // only show if needed
                 }
             } // Row
 
