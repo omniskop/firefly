@@ -373,6 +373,12 @@ func (s *stage) mapToTime(diff int) float64 {
 	}
 }
 
+// mapRelativeFromScene maps a relative position (width/height) in scene coordinates to viewport coordinates
+func (s *stage) mapRelativeFromScene(p *core.QPointF) *core.QPoint {
+	poly := s.MapFromScene2(core.NewQRectF4(0, 0, p.X(), p.Y()))
+	return core.NewQPoint2(poly.BoundingRect().Width(), poly.BoundingRect().Height())
+}
+
 func (s *stage) redraw() {
 	s.scene.Update(s.sceneViewport())
 }

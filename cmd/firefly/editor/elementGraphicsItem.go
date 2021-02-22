@@ -28,6 +28,7 @@ type elementGraphicsItem struct {
 	parent                     *stage                // the parent editor this element belongs to
 	handles                    []*handleGraphicsItem // the handle items that are visible when the element is selected
 	gradientItem               *gradientGraphicsItem
+	dragStartPosition          *core.QPointF // position of the element when the user started to move it
 	ignoreNextPositionChange   byte
 }
 
@@ -96,6 +97,7 @@ func (item *elementGraphicsItem) updateHandles(except int) {
 
 func (item *elementGraphicsItem) mousePressEvent(event *widgets.QGraphicsSceneMouseEvent) {
 	event.Accept() // accept this event to stop this event from propagating to the parent
+	item.dragStartPosition = item.Pos()
 	item.parent.elementHasBeenClicked(item, event)
 	item.MousePressEventDefault(event)
 }
@@ -103,7 +105,7 @@ func (item *elementGraphicsItem) mousePressEvent(event *widgets.QGraphicsSceneMo
 func (item *elementGraphicsItem) itemChangeEvent(change widgets.QGraphicsItem__GraphicsItemChange, value *core.QVariant) *core.QVariant {
 	if change == widgets.QGraphicsItem__ItemPositionChange {
 		if item.parent.creationElement != nil && item.parent.creationElement.Pointer() != item.Pointer() {
-			// if an element is currently being created at it is not this element itself the move should be ignored
+			// if an element is currently being created and it is not this element itself the move should be ignored
 			// the change will be overwritten by the return value of this function
 			return core.NewQVariant28(core.NewQPointF())
 		}
@@ -111,12 +113,35 @@ func (item *elementGraphicsItem) itemChangeEvent(change widgets.QGraphicsItem__G
 			item.ignoreNextPositionChange = 0
 			goto end
 		}
+
 		newPos := value.ToPointF()
-		item.element.Shape.SetOrigin(vpPoint(newPos))
+
 		if item.ignoreNextPositionChange == 2 {
+			// This item has been moved because it is part of a selection.
+			// We will leave here because we don't need to update other elements.
+			item.element.Shape.SetOrigin(vpPoint(newPos))
 			item.ignoreNextPositionChange = 0
 			goto end
 		}
+
+		if gui.QGuiApplication_KeyboardModifiers()&core.Qt__ShiftModifier != 0 {
+			// If the user is holding the shift key we will restrict the item movement to only one axis.
+			// The axis with the least required change is chosen.
+			diffX := newPos.X() - item.dragStartPosition.X()
+			diffY := newPos.Y() - item.dragStartPosition.Y()
+			pixelDiff := item.parent.mapRelativeFromScene(core.NewQPointF3(diffX, diffY))
+			if pixelDiff.X() > pixelDiff.Y() {
+				// change on X axis is larger than on Y, we will keep the Y axis constant
+				newPos.SetY(item.dragStartPosition.Y())
+			} else {
+				newPos.SetX(item.dragStartPosition.X())
+			}
+			value = core.NewQVariant28(newPos) // update value
+		}
+
+		item.element.Shape.SetOrigin(vpPoint(newPos))
+
+		// update other selected elements
 		oldPos := item.Pos()
 		change := core.NewQPointF3(newPos.X()-oldPos.X(), newPos.Y()-oldPos.Y())
 		for _, element := range item.parent.selection.elements {
