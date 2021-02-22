@@ -6,6 +6,7 @@ Contents.json
 deploy/
 rcc.cpp
 rcc_cgo_*.go
+rcc_*.cpp
 # qt moc
 moc_*
 moc.*
