@@ -127,6 +127,11 @@ func (item *elementGraphicsItem) itemChangeEvent(change widgets.QGraphicsItem__G
 		if gui.QGuiApplication_KeyboardModifiers()&core.Qt__ShiftModifier != 0 {
 			// If the user is holding the shift key we will restrict the item movement to only one axis.
 			// The axis with the least required change is chosen.
+			if item.dragStartPosition == nil {
+				// should theoretically not happen, but I would not be surprised if it can
+				logrus.Warn("elementGraphicsItem.itemChangeEvent dragStartPosition is not set")
+				goto end
+			}
 			diffX := newPos.X() - item.dragStartPosition.X()
 			diffY := newPos.Y() - item.dragStartPosition.Y()
 			pixelDiff := item.parent.mapRelativeFromScene(core.NewQPointF3(diffX, diffY))
