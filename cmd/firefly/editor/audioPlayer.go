@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"path"
 	"strings"
 
 	"github.com/faiface/beep/wav"
-	
+
 	"github.com/omniskop/firefly/cmd/firefly/audio"
 	"github.com/omniskop/firefly/cmd/firefly/settings"
 	"github.com/omniskop/firefly/pkg/project"
@@ -28,6 +27,7 @@ type rawAudio struct {
 type audioPlayer struct {
 	*multimedia.QMediaPlayer
 	raw            rawAudio
+	mediaPath      string
 	timeCache      float64
 	onTimeChangedF func(t float64)
 	onReadyF       func()
@@ -38,6 +38,7 @@ type audioPlayer struct {
 func NewAudioPlayer(mediapath string) *audioPlayer {
 	player := audioPlayer{
 		QMediaPlayer: multimedia.NewQMediaPlayer(nil, multimedia.QMediaPlayer__LowLatency|multimedia.QMediaPlayer__StreamPlayback),
+		mediaPath:    mediapath,
 	}
 
 	player.SetNotifyInterval(16)
