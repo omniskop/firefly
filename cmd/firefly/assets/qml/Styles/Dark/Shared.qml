@@ -14,6 +14,6 @@ QtObject {
     property font font
     font.bold: true
     font.underline: false
-    font.pixelSize: 14
+    font.pixelSize: 20
     font.family: "arial"
 }

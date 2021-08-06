@@ -3,7 +3,6 @@
 export QT_DIR="${HOME}/Qt"
 export QT_VERSION="5.13.1"
 export QT_API="5.13.0"
-# export CGO_CXXFLAGS="-g -O2 -D QT_NO_DEPRECATED_WARNINGS"
 
 package="./cmd/firefly"
 binary_name="firefly"
@@ -15,13 +14,14 @@ build()
 {
     echo ">> build"
     # calling go build directly is slightly faster (one second on my machine which rougly equals 8%)
-    # go build -ldflags '-s -w' -mod=vendor -o $binary_name -v $package
-    qtdeploy -fast build desktop $package
+    export CGO_CXXFLAGS="-g -O2 -D QT_NO_DEPRECATED_WARNINGS"
+    go build -ldflags '-s -w' -mod=vendor -o $binary_name -v $package
+    # qtdeploy -fast build desktop $package
 }
 
 deploy()
-{ 
-    case $2 in
+{
+    case $1 in
         "all") deploy_windows; deploy_linux; deploy_macos
         ;;
         "windows") deploy_windows
@@ -112,7 +112,7 @@ help()
 case $1 in
     "build") build
     ;;
-    "deploy") deploy
+    "deploy") deploy $2
     ;;
     "rcc") rcc
     ;;
