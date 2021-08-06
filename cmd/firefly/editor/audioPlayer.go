@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/faiface/beep/wav"
-
+	
 	"github.com/omniskop/firefly/cmd/firefly/audio"
 	"github.com/omniskop/firefly/cmd/firefly/settings"
 	"github.com/omniskop/firefly/pkg/project"
